@@ -1,1102 +1,738 @@
 'use client';
 
-import { use, useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Head from 'next/head';
 import Link from 'next/link';
 import { 
-  Car, MapPin, Search, Clock, Star, Navigation,
-  Filter, CreditCard, Bookmark, History, Settings,
-  AlertCircle, CheckCircle, XCircle, Info, Eye,
-  Calendar, Timer, Zap, Shield, Wifi, Camera,
-  Phone, MessageCircle, Heart, Share2, Bell,
-  TrendingUp, Award, Users, Coffee, ShoppingBag,
-  ArrowLeft, ChevronDown, ChevronUp, MoreVertical,
-  Play, Pause, RotateCcw, Maximize2, Compass,
-  Target, Route, Volume2, VolumeX, Home, Gift
+  Car, MapPin, Search, Navigation, Home, Gift, 
+  ShoppingBag, Coffee, X, Clock, Euro, Map,
+  Loader, RefreshCw, ArrowLeft, Star, Heart,
+  Calendar, Phone, Zap
 } from 'lucide-react';
 
 // Types
 interface ParkingSpot {
   id: string;
   name: string;
-  type: 'street' | 'garage' | 'lot' | 'private';
+  type: 'garage' | 'street';
   address: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
+  coordinates: { lat: number; lng: number };
   distance: number;
   walkingTime: number;
-  totalSpaces: number;
   availableSpaces: number;
-  occupancyRate: number;
-  pricing: {
+  totalSpaces?: number;
+  hourlyPrice: number;
+  isOpen: boolean;
+  dataSource: 'static' | 'osm';
+  rating?: number;
+  features?: string[];
+  amenities?: string[];
+  pricing?: {
     hourly: number;
     daily?: number;
     monthly?: number;
   };
-  maxDuration?: number; // in hours
-  features: string[];
-  rating?: number;
-  reviewCount?: number;
-  isOpen: boolean;
-  openHours?: string;
-  isFavorite: boolean;
-  lastUpdated: Date;
-  predictions: {
-    nextHour: number;
-    next2Hours: number;
-    next4Hours: number;
+}
+
+interface OSMStreetParking {
+  id: string;
+  name: string;
+  geometry: Array<{ lat: number; lon: number }>;
+  tags: {
+    name?: string;
+    highway?: string;
+    'parking:lane'?: string;
+    'parking:both'?: string;
+    'parking:left'?: string;
+    'parking:right'?: string;
+    fee?: string;
+    maxstay?: string;
   };
-  amenities: string[];
-  restrictions: string[];
-  paymentMethods: string[];
-  image: string;
 }
 
-interface Reservation {
-  id: string;
-  spotId: string;
-  spotName: string;
-  startTime: Date;
-  endTime: Date;
-  duration: number;
-  cost: number;
-  status: 'active' | 'upcoming' | 'completed' | 'cancelled';
-  confirmationCode: string;
-  spaceNumber?: string;
-}
-
-interface ParkingSession {
-  id: string;
-  spotId: string;
-  spotName: string;
-  startTime: Date;
-  endTime?: Date;
-  duration: number;
-  cost: number;
-  status: 'active' | 'completed';
-  spaceNumber?: string;
-  paymentMethod: string;
-}
-
-// Demo Data
-const DEMO_PARKING_SPOTS: ParkingSpot[] = [
+// Statische Parkhäuser (erweitert)
+const PARKING_GARAGES: ParkingSpot[] = [
   {
-    id: 'parkhaus-city',
+    id: 'city-galerie',
     name: 'Parkhaus City-Galerie',
     type: 'garage',
-    address: 'Bohlweg 38-39, 38100 Braunschweig',
+    address: 'Bohlweg 38-39',
     coordinates: { lat: 52.2631, lng: 10.5218 },
     distance: 120,
     walkingTime: 2,
-    totalSpaces: 480,
     availableSpaces: 127,
-    occupancyRate: 73,
+    totalSpaces: 480,
+    hourlyPrice: 2.50,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.2,
+    features: ['Überdacht', 'Videoüberwacht', 'Behindertengerecht'],
+    amenities: ['WC', 'Aufzug', 'Einkaufszentrum'],
     pricing: {
       hourly: 2.50,
-      daily: 18.00,
+      daily: 15.00,
       monthly: 89.00
-    },
-    maxDuration: 24,
-    features: ['Überdacht', 'Videoüberwachung', 'Aufzug', 'Behindertengerecht'],
-    rating: 4.3,
-    reviewCount: 189,
-    isOpen: true,
-    openHours: '24/7',
-    isFavorite: true,
-    lastUpdated: new Date(),
-    predictions: {
-      nextHour: 98,
-      next2Hours: 156,
-      next4Hours: 203
-    },
-    amenities: ['WC', 'Waschanlage', 'E-Ladestationen', 'WLAN'],
-    restrictions: ['Max. Höhe 2.0m'],
-    paymentMethods: ['Karte', 'App', 'Bar'],
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop'
+    }
   },
   {
-    id: 'schlossplatz',
-    name: 'Parkplatz Schlossplatz',
-    type: 'lot',
-    address: 'Schlossplatz, 38100 Braunschweig',
-    coordinates: { lat: 52.2589, lng: 10.5201 },
-    distance: 350,
-    walkingTime: 4,
-    totalSpaces: 85,
-    availableSpaces: 12,
-    occupancyRate: 86,
-    pricing: {
-      hourly: 1.50,
-      daily: 12.00
-    },
-    maxDuration: 8,
-    features: ['Zentral', 'Historisch', 'Kurze Wege'],
-    rating: 4.0,
-    reviewCount: 67,
-    isOpen: true,
-    openHours: '06:00-22:00',
-    isFavorite: false,
-    lastUpdated: new Date(Date.now() - 300000),
-    predictions: {
-      nextHour: 8,
-      next2Hours: 15,
-      next4Hours: 28
-    },
-    amenities: ['Parkscheinautomat'],
-    restrictions: ['Mo-Fr: Max. 4h', 'Sa-So: Unbegrenzt'],
-    paymentMethods: ['Münzen', 'App'],
-    image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=400&h=300&fit=crop'
-  },
-  {
-    id: 'hauptbahnhof-garage',
+    id: 'hauptbahnhof',
     name: 'Parkhaus Hauptbahnhof',
     type: 'garage',
-    address: 'Willy-Brandt-Platz 1, 38102 Braunschweig',
+    address: 'Willy-Brandt-Platz 1',
     coordinates: { lat: 52.2521, lng: 10.5407 },
     distance: 850,
     walkingTime: 11,
-    totalSpaces: 320,
     availableSpaces: 45,
-    occupancyRate: 86,
+    totalSpaces: 320,
+    hourlyPrice: 2.00,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 3.8,
+    features: ['Überdacht', 'E-Ladestationen', '24h geöffnet'],
+    amenities: ['DB Lounge', 'Reisezentrum', 'Geschäfte'],
     pricing: {
       hourly: 2.00,
-      daily: 15.00,
+      daily: 12.00,
       monthly: 75.00
-    },
-    features: ['Direkter Bahnhofszugang', 'Überdacht', 'Sicherheitsdienst'],
-    rating: 4.1,
-    reviewCount: 234,
-    isOpen: true,
-    openHours: '24/7',
-    isFavorite: true,
-    lastUpdated: new Date(Date.now() - 120000),
-    predictions: {
-      nextHour: 38,
-      next2Hours: 67,
-      next4Hours: 89
-    },
-    amenities: ['WC', 'Shops', 'Restaurants', 'E-Ladestationen'],
-    restrictions: ['Max. Höhe 1.9m'],
-    paymentMethods: ['Karte', 'App', 'Kontaktlos'],
-    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop'
+    }
   },
   {
-    id: 'magniviertel',
-    name: 'Magniviertel Straßenparkplätze',
-    type: 'street',
-    address: 'Magnitorwall, 38100 Braunschweig',
-    coordinates: { lat: 52.2654, lng: 10.5234 },
-    distance: 280,
-    walkingTime: 3,
-    totalSpaces: 45,
-    availableSpaces: 8,
-    occupancyRate: 82,
-    pricing: {
-      hourly: 1.20,
-      daily: 8.00
-    },
-    maxDuration: 6,
-    features: ['Altstadtnähe', 'Kostenlos So', 'Restaurants'],
-    rating: 3.8,
-    reviewCount: 42,
-    isOpen: true,
-    openHours: 'Mo-Sa 08:00-20:00',
-    isFavorite: false,
-    lastUpdated: new Date(Date.now() - 180000),
-    predictions: {
-      nextHour: 12,
-      next2Hours: 18,
-      next4Hours: 25
-    },
-    amenities: ['Parkscheinautomat'],
-    restrictions: ['So: Kostenlos', 'Mo-Sa: Max. 3h'],
-    paymentMethods: ['Münzen', 'App'],
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'
-  },
-  {
-    id: 'arkaden-parkhaus',
-    name: 'Schloss-Arkaden Parkhaus',
+    id: 'schloss-arkaden',
+    name: 'Schloss-Arkaden',
     type: 'garage',
-    address: 'Platz der Deutschen Einheit 1, 38100 Braunschweig',
+    address: 'Platz der Deutschen Einheit 1',
     coordinates: { lat: 52.2561, lng: 10.5193 },
     distance: 620,
     walkingTime: 8,
-    totalSpaces: 650,
     availableSpaces: 234,
-    occupancyRate: 64,
+    totalSpaces: 650,
+    hourlyPrice: 2.00,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.5,
+    features: ['Überdacht', 'Frauen-Parkplätze', 'Familien-Parkplätze'],
+    amenities: ['Shopping Center', 'Restaurants', 'Kino'],
     pricing: {
       hourly: 2.00,
-      daily: 16.00,
+      daily: 10.00,
       monthly: 85.00
-    },
-    features: ['Shopping-Center', 'Moderne Ausstattung', 'Restaurants'],
-    rating: 4.4,
-    reviewCount: 312,
-    isOpen: true,
-    openHours: '07:00-24:00',
-    isFavorite: true,
-    lastUpdated: new Date(Date.now() - 60000),
-    predictions: {
-      nextHour: 198,
-      next2Hours: 167,
-      next4Hours: 145
-    },
-    amenities: ['Shopping', 'Restaurants', 'WC', 'E-Ladestationen'],
-    restrictions: ['3h kostenlos bei Einkauf'],
-    paymentMethods: ['Karte', 'App', 'Kontaktlos'],
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop'
-  },
-  {
-    id: 'beethovenstrasse',
-    name: 'Beethovenstraße Parkplatz',
-    type: 'street',
-    address: 'Beethovenstraße, 38106 Braunschweig',
-    coordinates: { lat: 52.2598, lng: 10.5156 },
-    distance: 450,
-    walkingTime: 6,
-    totalSpaces: 38,
-    availableSpaces: 3,
-    occupancyRate: 92,
-    pricing: {
-      hourly: 1.00,
-      daily: 6.00
-    },
-    maxDuration: 4,
-    features: ['Günstig', 'Wohngebiet', 'Ruhig'],
-    rating: 3.9,
-    reviewCount: 28,
-    isOpen: true,
-    openHours: 'Mo-Sa 08:00-18:00',
-    isFavorite: false,
-    lastUpdated: new Date(Date.now() - 420000),
-    predictions: {
-      nextHour: 2,
-      next2Hours: 5,
-      next4Hours: 8
-    },
-    amenities: ['Parkscheinautomat'],
-    restrictions: ['Mo-Fr: Max. 2h', 'Sa: Max. 4h', 'So: Kostenfrei'],
-    paymentMethods: ['Münzen', 'App'],
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'
-  },
-  {
-    id: 'weststadt-center',
-    name: 'Weststadt-Center Parkplatz',
-    type: 'lot',
-    address: 'Salzdahlumer Str. 196, 38126 Braunschweig',
-    coordinates: { lat: 52.2445, lng: 10.4892 },
-    distance: 1200,
-    walkingTime: 15,
-    totalSpaces: 180,
-    availableSpaces: 67,
-    occupancyRate: 63,
-    pricing: {
-      hourly: 1.00,
-      daily: 8.00
-    },
-    features: ['Kostenlos 2h', 'Einkaufszentrum', 'Weitläufig'],
-    rating: 4.2,
-    reviewCount: 95,
-    isOpen: true,
-    openHours: '08:00-22:00',
-    isFavorite: false,
-    lastUpdated: new Date(Date.now() - 240000),
-    predictions: {
-      nextHour: 78,
-      next2Hours: 89,
-      next4Hours: 102
-    },
-    amenities: ['Shopping', 'Restaurants', 'Supermarkt'],
-    restrictions: ['2h kostenlos bei Einkauf'],
-    paymentMethods: ['Karte', 'App'],
-    image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=400&h=300&fit=crop'
+    }
   }
 ];
 
-const DEMO_RESERVATIONS: Reservation[] = [
-  {
-    id: 'res-001',
-    spotId: 'parkhaus-city',
-    spotName: 'Parkhaus City-Galerie',
-    startTime: new Date(Date.now() + 3600000), // in 1 hour
-    endTime: new Date(Date.now() + 7200000), // in 2 hours
-    duration: 1,
-    cost: 2.50,
-    status: 'upcoming',
-    confirmationCode: 'PK7829',
-    spaceNumber: 'E2-45'
-  },
-  {
-    id: 'res-002',
-    spotId: 'hauptbahnhof-garage',
-    spotName: 'Parkhaus Hauptbahnhof',
-    startTime: new Date(Date.now() - 1800000), // started 30 min ago
-    endTime: new Date(Date.now() + 5400000), // ends in 1.5 hours
-    duration: 2,
-    cost: 4.00,
-    status: 'active',
-    confirmationCode: 'HB4512',
-    spaceNumber: 'B1-23'
-  },
-  {
-    id: 'res-003',
-    spotId: 'arkaden-parkhaus',
-    spotName: 'Schloss-Arkaden Parkhaus',
-    startTime: new Date(Date.now() - 86400000 * 2), // 2 days ago
-    endTime: new Date(Date.now() - 86400000 * 2 + 14400000), // completed
-    duration: 4,
-    cost: 8.00,
-    status: 'completed',
-    confirmationCode: 'SA9876',
-    spaceNumber: 'A3-67'
-  }
-];
+// OSM API Integration (bleibt gleich)
+class OSMParkingService {
+  private static readonly OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+  private static readonly BRAUNSCHWEIG_BOUNDS = {
+    south: 52.2450,
+    west: 10.4900,
+    north: 52.2800,
+    east: 10.5500
+  };
 
-const DEMO_PARKING_SESSIONS: ParkingSession[] = [
-  {
-    id: 'session-001',
-    spotId: 'hauptbahnhof-garage',
-    spotName: 'Parkhaus Hauptbahnhof',
-    startTime: new Date(Date.now() - 1800000), // started 30 min ago
-    duration: 1.5,
-    cost: 3.00,
-    status: 'active',
-    spaceNumber: 'B1-23',
-    paymentMethod: 'App'
-  },
-  {
-    id: 'session-002',
-    spotId: 'parkhaus-city',
-    spotName: 'Parkhaus City-Galerie',
-    startTime: new Date(Date.now() - 86400000), // yesterday
-    endTime: new Date(Date.now() - 86400000 + 10800000), // 3 hours
-    duration: 3,
-    cost: 7.50,
-    status: 'completed',
-    spaceNumber: 'D2-89',
-    paymentMethod: 'Karte'
-  }
-];
+  static async getStreetParkingData(): Promise<OSMStreetParking[]> {
+    const { south, west, north, east } = this.BRAUNSCHWEIG_BOUNDS;
+    
+    const query = `
+      [out:json][timeout:25];
+      (
+        way["highway"]["name"]["parking:lane"~"parallel|diagonal|perpendicular"](${south},${west},${north},${east});
+        way["highway"]["name"]["parking:both"~"parallel|diagonal|perpendicular"](${south},${west},${north},${east});
+        way["highway"]["name"]["parking:left"~"parallel|diagonal|perpendicular"](${south},${west},${north},${east});
+        way["highway"]["name"]["parking:right"~"parallel|diagonal|perpendicular"](${south},${west},${north},${east});
+        way["amenity"="parking"]["parking"="street_side"]["name"](${south},${west},${north},${east});
+      );
+      out geom;
+    `;
 
-const DEMO_TRAFFIC_EVENTS = [
-  {
-    id: 'event-001',
-    title: 'Weihnachtsmarkt',
-    location: 'Burgplatz',
-    startDate: new Date(2024, 11, 15), // December 15, 2024
-    endDate: new Date(2024, 11, 23),   // December 23, 2024
-    impact: 'high',
-    affectedParkingSpots: ['burgplatz', 'magniviertel'],
-    description: 'Erhöhte Nachfrage nach Parkplätzen in der Innenstadt'
-  },
-  {
-    id: 'event-002',
-    title: 'Konzert im Staatstheater',
-    location: 'Staatstheater Braunschweig',
-    startDate: new Date(Date.now() + 7200000), // in 2 hours
-    endDate: new Date(Date.now() + 14400000),  // in 4 hours
-    impact: 'medium',
-    affectedParkingSpots: ['parkhaus-city', 'schlossplatz'],
-    description: 'Begrenzte Verfügbarkeit in der Innenstadt'
-  },
-  {
-    id: 'event-003',
-    title: 'Bauarbeiten Bohlweg',
-    location: 'Bohlweg',
-    startDate: new Date(Date.now() - 86400000 * 7), // started a week ago
-    endDate: new Date(Date.now() + 86400000 * 14),  // ends in 2 weeks
-    impact: 'low',
-    affectedParkingSpots: ['parkhaus-city'],
-    description: 'Leichte Beeinträchtigung der Zufahrt'
-  }
-];
+    try {
+      console.log('🗺️ Lade OSM-Daten für Braunschweig...');
+      
+      const response = await fetch(this.OVERPASS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: query
+      });
 
+      if (!response.ok) {
+        throw new Error(`OSM API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.elements && data.elements.length > 0) {
+        return data.elements
+          .filter((element: any) => element.tags?.name)
+          .map((element: any) => ({
+            id: `osm_${element.id}`,
+            name: element.tags.name,
+            geometry: element.geometry || [],
+            tags: element.tags
+          }));
+      }
+
+      return this.getFallbackStreetData();
+      
+    } catch (error) {
+      console.error('❌ OSM Fehler:', error);
+      return this.getFallbackStreetData();
+    }
+  }
+
+  private static getFallbackStreetData(): OSMStreetParking[] {
+    return [
+      {
+        id: 'fallback_bohlweg',
+        name: 'Bohlweg',
+        geometry: [
+          { lat: 52.2645, lon: 10.5198 },
+          { lat: 52.2650, lon: 10.5210 },
+          { lat: 52.2655, lon: 10.5222 }
+        ],
+        tags: {
+          name: 'Bohlweg',
+          highway: 'primary',
+          'parking:both': 'parallel',
+          fee: '1.50',
+          maxstay: '2h'
+        }
+      },
+      {
+        id: 'fallback_damm',
+        name: 'Damm',
+        geometry: [
+          { lat: 52.2612, lon: 10.5189 },
+          { lat: 52.2618, lon: 10.5195 },
+          { lat: 52.2624, lon: 10.5201 }
+        ],
+        tags: {
+          name: 'Damm',
+          highway: 'primary',
+          'parking:both': 'parallel',
+          fee: '1.50'
+        }
+      },
+      {
+        id: 'fallback_kohlmarkt',
+        name: 'Kohlmarkt',
+        geometry: [
+          { lat: 52.2638, lon: 10.5201 },
+          { lat: 52.2642, lon: 10.5208 },
+          { lat: 52.2646, lon: 10.5215 }
+        ],
+        tags: {
+          name: 'Kohlmarkt',
+          highway: 'residential',
+          'parking:both': 'parallel',
+          fee: 'no'
+        }
+      },
+      {
+        id: 'fallback_wilhelmstraße',
+        name: 'Wilhelmstraße',
+        geometry: [
+          { lat: 52.2634, lon: 10.5267 },
+          { lat: 52.2639, lon: 10.5274 },
+          { lat: 52.2644, lon: 10.5281 }
+        ],
+        tags: {
+          name: 'Wilhelmstraße',
+          highway: 'secondary',
+          'parking:both': 'parallel',
+          fee: '1.30'
+        }
+      },
+      {
+        id: 'fallback_steinweg',
+        name: 'Steinweg',
+        geometry: [
+          { lat: 52.2621, lon: 10.5156 },
+          { lat: 52.2627, lon: 10.5163 },
+          { lat: 52.2633, lon: 10.5170 }
+        ],
+        tags: {
+          name: 'Steinweg',
+          highway: 'tertiary',
+          'parking:right': 'parallel',
+          fee: '1.00'
+        }
+      },
+      {
+        id: 'fallback_magnitorwall',
+        name: 'Magnitorwall',
+        geometry: [
+          { lat: 52.2656, lon: 10.5234 },
+          { lat: 52.2661, lon: 10.5241 },
+          { lat: 52.2666, lon: 10.5248 }
+        ],
+        tags: {
+          name: 'Magnitorwall',
+          highway: 'secondary',
+          'parking:right': 'diagonal',
+          fee: '1.20'
+        }
+      },
+      {
+        id: 'fallback_brudern',
+        name: 'Hintern Brüdern',
+        geometry: [
+          { lat: 52.2619, lon: 10.5178 },
+          { lat: 52.2625, lon: 10.5185 },
+          { lat: 52.2631, lon: 10.5192 }
+        ],
+        tags: {
+          name: 'Hintern Brüdern',
+          highway: 'tertiary',
+          'parking:left': 'parallel',
+          fee: '0.80'
+        }
+      },
+      {
+        id: 'fallback_vor_der_burg',
+        name: 'Vor der Burg',
+        geometry: [
+          { lat: 52.2598, lon: 10.5189 },
+          { lat: 52.2604, lon: 10.5196 },
+          { lat: 52.2610, lon: 10.5203 }
+        ],
+        tags: {
+          name: 'Vor der Burg',
+          highway: 'residential',
+          'parking:both': 'parallel',
+          fee: 'no'
+        }
+      }
+    ];
+  }
+}
+
+// Helper Functions (bleiben gleich)
+const convertOSMToParking = (osmData: OSMStreetParking[]): ParkingSpot[] => {
+  return osmData.map((osm, index) => {
+    const isFree = osm.tags.fee === 'no' || osm.tags.fee === 'none' || !osm.tags.fee;
+    let hourlyPrice = 0;
+    
+    if (!isFree && osm.tags.fee) {
+      const parsedFee = parseFloat(osm.tags.fee);
+      hourlyPrice = !isNaN(parsedFee) ? parsedFee : 1.50;
+    }
+
+    const estimatedLength = osm.geometry.length > 1 ? 
+      calculateDistance(osm.geometry[0], osm.geometry[osm.geometry.length - 1]) : 120;
+    const estimatedSpaces = Math.max(5, Math.floor(estimatedLength / 5));
+    
+    const baseOccupancy = getStreetOccupancy(osm.name);
+    const occupancyRate = Math.max(20, Math.min(75, baseOccupancy + (Math.random() * 15 - 7)));
+    const availableSpaces = Math.max(1, Math.floor(estimatedSpaces * (1 - occupancyRate / 100)));
+
+    const centerPoint = { lat: 52.2625, lng: 10.5211 };
+    const streetCenter = osm.geometry.length > 0 ? 
+      osm.geometry[Math.floor(osm.geometry.length / 2)] : 
+      { lat: 52.2625, lon: 10.5211 };
+    
+    const distance = Math.round(calculateDistance(
+      centerPoint, 
+      { lat: streetCenter.lat, lng: streetCenter.lon }
+    ));
+
+    return {
+      id: osm.id,
+      name: osm.name,
+      type: 'street' as const,
+      address: `${osm.name}, Braunschweig`,
+      coordinates: { lat: streetCenter.lat, lng: streetCenter.lon },
+      distance,
+      walkingTime: Math.max(1, Math.round(distance / 80)),
+      availableSpaces: availableSpaces,
+      totalSpaces: estimatedSpaces,
+      hourlyPrice,
+      isOpen: true,
+      dataSource: 'osm' as const,
+      rating: Math.round((Math.random() * 2 + 3) * 10) / 10, // 3.0-5.0
+      features: isFree ? ['Kostenlos'] : ['Gebührenpflichtig'],
+      amenities: ['Straßenparken'],
+      pricing: {
+        hourly: hourlyPrice,
+        daily: hourlyPrice * 8
+      }
+    };
+  });
+};
+
+const getStreetOccupancy = (streetName: string): number => {
+  const currentHour = new Date().getHours();
+  let baseOccupancy = 40;
+
+  const name = streetName.toLowerCase();
+  if (name.includes('bohlweg') || name.includes('damm')) {
+    baseOccupancy = 60;
+  } else if (name.includes('kohlmarkt') || name.includes('alte waage')) {
+    baseOccupancy = 50;
+  } else if (name.includes('wilhelmstraße')) {
+    baseOccupancy = 45;
+  }
+
+  if (currentHour >= 9 && currentHour <= 17) {
+    baseOccupancy += 10;
+  } else if (currentHour >= 18 && currentHour <= 21) {
+    baseOccupancy += 5;
+  } else if (currentHour >= 22 || currentHour <= 6) {
+    baseOccupancy -= 15;
+  }
+
+  return Math.max(20, Math.min(70, baseOccupancy));
+};
+
+const calculateDistance = (point1: { lat: number; lng?: number; lon?: number }, point2: { lat: number; lng?: number; lon?: number }): number => {
+  const lat1 = point1.lat;
+  const lon1 = point1.lng || point1.lon || 0;
+  const lat2 = point2.lat;
+  const lon2 = point2.lng || point2.lon || 0;
+
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// Hauptkomponente mit Navigation-Layout
 const ParkingPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('Alle');
-  const [sortBy, setSortBy] = useState<'distance' | 'availability' | 'price'>('distance');
-  const [currentView, setCurrentView] = useState<'list' | 'map' | 'ar'>('list');
+  const [sortBy, setSortBy] = useState('distance');
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
+  const [favoriteSpots, setFavoriteSpots] = useState<string[]>([]);
+  const [streetParking, setStreetParking] = useState<ParkingSpot[]>([]);
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [osmLoaded, setOsmLoaded] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showReservation, setShowReservation] = useState(false);
-  const [activeSession, setActiveSession] = useState<ParkingSession | null>(null);
-  const [favoritSpots, setFavoriteSpots] = useState<string[]>(['parkhaus-city', 'hauptbahnhof-garage', 'arkaden-parkhaus']);
-  const [showFilters, setShowFilters] = useState(false);
-  const [reservationDuration, setReservationDuration] = useState(2);
-  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Use demo data directly
-  const parkingSpots = DEMO_PARKING_SPOTS;
-  const reservations = DEMO_RESERVATIONS;
-  const parkingSessions = DEMO_PARKING_SESSIONS;
-  const trafficEvents = DEMO_TRAFFIC_EVENTS;
+  // OSM Daten laden
+  const loadOSMData = async () => {
+    setOsmLoading(true);
+    try {
+      const osmStreets = await OSMParkingService.getStreetParkingData();
+      const parkingSpots = convertOSMToParking(osmStreets);
+      
+      const availableParking = parkingSpots.filter(spot => spot.availableSpaces > 0);
+      
+      setStreetParking(availableParking);
+      setOsmLoaded(true);
+      setLastUpdate(new Date());
+      
+      console.log(`✅ ${availableParking.length} verfügbare Straßenparkplätze geladen`);
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der OSM-Daten:', error);
+    } finally {
+      setOsmLoading(false);
+    }
+  };
 
-  // Filter and sort parking spots
+  useEffect(() => {
+    loadOSMData();
+  }, []);
+
+  // Alle Parkplätze kombinieren
+  const parkingSpots = useMemo(() => {
+    return [...PARKING_GARAGES, ...streetParking];
+  }, [streetParking]);
+
+  // Gefilterte und sortierte Parkplätze (Navigation-Style)
   const filteredAndSortedSpots = useMemo(() => {
     let filtered = parkingSpots;
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(spot =>
         spot.name.toLowerCase().includes(query) ||
         spot.address.toLowerCase().includes(query) ||
-        spot.features.some(feature => feature.toLowerCase().includes(query))
+        spot.features?.some(feature => feature.toLowerCase().includes(query))
       );
     }
 
-    // Type filter
     if (selectedFilter !== 'Alle') {
-      const typeMap: { [key: string]: string } = {
-        'Parkhäuser': 'garage',
-        'Parkplätze': 'lot',
-        'Straße': 'street',
-        'Verfügbar': 'available'
-      };
-      
       if (selectedFilter === 'Verfügbar') {
         filtered = filtered.filter(spot => spot.availableSpaces > 5);
-      } else {
-        const mappedType = typeMap[selectedFilter];
-        if (mappedType) {
-          filtered = filtered.filter(spot => spot.type === mappedType);
-        }
+      } else if (selectedFilter === 'Parkhäuser') {
+        filtered = filtered.filter(spot => spot.type === 'garage');
+      } else if (selectedFilter === 'Straßenparkplätze') {
+        filtered = filtered.filter(spot => spot.type === 'street');
+      } else if (selectedFilter === 'Kostenlos') {
+        filtered = filtered.filter(spot => spot.hourlyPrice === 0);
+      } else if (selectedFilter === 'Favoriten') {
+        filtered = filtered.filter(spot => favoriteSpots.includes(spot.id));
       }
     }
 
-    // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'distance':
-          return a.distance - b.distance;
-        case 'availability':
-          return b.availableSpaces - a.availableSpaces;
-        case 'price':
-          return a.pricing.hourly - b.pricing.hourly;
-        default:
-          return 0;
+        case 'distance': return a.distance - b.distance;
+        case 'availability': return b.availableSpaces - a.availableSpaces;
+        case 'price': return a.hourlyPrice - b.hourlyPrice;
+        case 'rating': return (b.rating || 0) - (a.rating || 0);
+        default: return 0;
       }
     });
 
     return filtered;
-  }, [parkingSpots, searchQuery, selectedFilter, sortBy]);
+  }, [parkingSpots, searchQuery, selectedFilter, sortBy, favoriteSpots]);
 
-  const filterOptions = ['Alle', 'Verfügbar', 'Parkhäuser', 'Parkplätze', 'Straße'];
-
-  // Helper functions
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'garage': return '🏢';
-      case 'lot': return '🅿️';
-      case 'street': return '🛣️';
-      case 'private': return '🔒';
-      default: return '🅿️';
-    }
-  };
-
-  const getOccupancyColor = (rate: number) => {
-    if (rate < 50) return 'text-green-600 bg-green-100';
-    if (rate < 80) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
-
-  const getAvailabilityText = (available: number, total: number) => {
-    const rate = (available / total) * 100;
-    if (rate > 20) return 'Gut verfügbar';
-    if (rate > 10) return 'Begrenzt verfügbar';
-    if (rate > 0) return 'Kaum verfügbar';
-    return 'Belegt';
-  };
-
-  const toggleFavorite = useCallback((spotId: string) => {
-    setFavoriteSpots(prev =>
-      prev.includes(spotId)
+  // Helper Functions
+  const toggleFavorite = (spotId: string) => {
+    setFavoriteSpots(prev => 
+      prev.includes(spotId) 
         ? prev.filter(id => id !== spotId)
         : [...prev, spotId]
     );
-  }, []);
+  };
 
-  const startNavigation = useCallback((spot: ParkingSpot) => {
-    setIsNavigating(true);
-    setSelectedSpot(null);
-    // In a real app, integrate with navigation system
-    setTimeout(() => {
-      alert(`Navigation zu ${spot.name} gestartet!`);
-      setIsNavigating(false);
-    }, 1000);
-  }, []);
+  const getAvailabilityColor = (available: number, total?: number) => {
+    if (total) {
+      const ratio = available / total;
+      if (ratio > 0.3) return 'text-green-600';
+      if (ratio > 0.1) return 'text-yellow-600';
+      return 'text-red-600';
+    }
+    return available > 5 ? 'text-green-600' : available > 0 ? 'text-yellow-600' : 'text-red-600';
+  };
 
-  const makeReservation = useCallback((spot: ParkingSpot, duration: number) => {
-    const newReservation: Reservation = {
-      id: `res-${Date.now()}`,
-      spotId: spot.id,
-      spotName: spot.name,
-      startTime: new Date(Date.now() + 900000), // in 15 minutes
-      endTime: new Date(Date.now() + 900000 + (duration * 3600000)),
-      duration,
-      cost: spot.pricing.hourly * duration,
-      status: 'upcoming',
-      confirmationCode: Math.random().toString(36).substr(2, 6).toUpperCase(),
-      spaceNumber: `${Math.floor(Math.random() * 5) + 1}-${Math.floor(Math.random() * 50) + 1}`
-    };
-    
-    setShowReservation(false);
-    setSelectedSpot(null);
-    alert(`Reservierung bestätigt! Code: ${newReservation.confirmationCode}`);
-  }, []);
+  const getSpotIcon = (type: string) => type === 'garage' ? '🏢' : '🛣️';
 
-  // Components
-  const StatusBar = () => (
-    <div className="flex justify-between items-center px-4 py-3 bg-blue-600 text-white text-sm">
-      <div className="flex items-center gap-2">
-        <Car className="w-5 h-5" />
-        <span className="font-medium">BS.Smart Parking</span>
-        {isNavigating && (
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-green-200">Navigation</span>
+  // Components - Navigation-Style
+  const ParkingSpotCard = ({ spot }: { spot: ParkingSpot }) => (
+    <div 
+      className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all cursor-pointer border-l-4 border-blue-500"
+      onClick={() => setSelectedSpot(spot)}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-3">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <span className="text-xl">{getSpotIcon(spot.type)}</span>
           </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <span>14:32</span>
-        <div className="flex items-center gap-1">
-          <div className="w-1 h-3 bg-white rounded"></div>
-          <div className="w-1 h-3 bg-white rounded"></div>
-          <div className="w-1 h-3 bg-white rounded"></div>
-          <div className="w-1 h-3 bg-white rounded"></div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const SearchAndFilters = () => (
-    <div className="bg-white border-b border-gray-200 p-4">
-      {/* Search Bar */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Parkplatz suchen..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      {/* Quick Filters */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex gap-2 overflow-x-auto flex-1">
-          {filterOptions.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setSelectedFilter(filter)}
-              className={`px-3 py-1 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-                selectedFilter === filter
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800 mb-1">{spot.name}</h3>
+            <p className="text-sm text-gray-600 mb-2">{spot.address}</p>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{spot.distance}m</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>{spot.walkingTime} Min</span>
+              </div>
+              {spot.rating && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  <span>{spot.rating}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFavorite(spot.id);
+          }}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <Filter className="w-5 h-5" />
+          <Heart className={`w-5 h-5 ${favoriteSpots.includes(spot.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
         </button>
       </div>
 
-      {/* Advanced Filters */}
-      {showFilters && (
-        <div className="bg-gray-50 p-3 rounded-xl">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-gray-800">Sortieren nach:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-sm"
-            >
-              <option value="distance">Entfernung</option>
-              <option value="availability">Verfügbarkeit</option>
-              <option value="price">Preis</option>
-            </select>
+      <div className="grid grid-cols-2 gap-4 mb-3">
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className={`text-lg font-bold ${getAvailabilityColor(spot.availableSpaces, spot.totalSpaces)}`}>
+            {spot.availableSpaces}
           </div>
+          <div className="text-xs text-gray-600">
+            {spot.totalSpaces ? `von ${spot.totalSpaces}` : 'frei'}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-blue-600">
+            {spot.hourlyPrice === 0 ? 'Frei' : `€${spot.hourlyPrice}`}
+          </div>
+          <div className="text-xs text-gray-600">
+            {spot.hourlyPrice === 0 ? '' : 'pro Stunde'}
+          </div>
+        </div>
+      </div>
+
+      {spot.features && spot.features.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {spot.features.slice(0, 3).map((feature) => (
+            <span
+              key={feature}
+              className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+            >
+              {feature}
+            </span>
+          ))}
+          {spot.features.length > 3 && (
+            <span className="text-xs text-gray-500">+{spot.features.length - 3} weitere</span>
+          )}
         </div>
       )}
 
-      {/* Results Summary */}
-      <div className="flex justify-between items-center text-sm text-gray-600">
-        <span>{filteredAndSortedSpots.length} Parkplätze gefunden</span>
-        <span>
-          🟢 {filteredAndSortedSpots.filter(s => s.occupancyRate < 50).length} gut verfügbar
-        </span>
-      </div>
-    </div>
-  );
-
-  const QuickStats = () => (
-    <div className="bg-white mx-4 my-3 p-4 rounded-xl shadow-sm border border-gray-100">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {parkingSpots.reduce((sum, spot) => sum + spot.availableSpaces, 0)}
-          </div>
-          <div className="text-sm text-gray-600">Freie Plätze</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">
-            €{parkingSpots.length > 0 ? Math.min(...parkingSpots.map(s => s.pricing.hourly)).toFixed(2) : '0.00'}
-          </div>
-          <div className="text-sm text-gray-600">Ab / Stunde</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-purple-600">
-            {reservations.filter(r => r.status === 'upcoming' || r.status === 'active').length}
-          </div>
-          <div className="text-sm text-gray-600">Aktive Buchungen</div>
-        </div>
+      <div className="flex gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            alert(`Navigation zu ${spot.name} gestartet!`);
+          }}
+          className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-1"
+        >
+          <Navigation className="w-4 h-4" />
+          Navigation
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowReservation(true);
+          }}
+          className="flex-1 bg-green-500 text-white py-2 px-3 rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center justify-center gap-1"
+          disabled={spot.availableSpaces === 0}
+        >
+          <Calendar className="w-4 h-4" />
+          Reservieren
+        </button>
       </div>
 
-      {/* Live Updates Banner */}
-      {trafficEvents.length > 0 && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Bell className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">Live Updates</span>
-          </div>
-          <p className="text-xs text-blue-700">
-            {trafficEvents[0]?.title}: {trafficEvents[0]?.description}
-          </p>
+      {spot.dataSource === 'osm' && (
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          🗺️ OpenStreetMap Daten
         </div>
       )}
     </div>
   );
 
-  const ParkingSpotCard = ({ spot }: { spot: ParkingSpot }) => (
-    <div 
-      className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer"
-      onClick={() => setSelectedSpot(spot)}
-    >
-      <div className="flex gap-3">
-        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-          <img
-            src={spot.image}
-            alt={spot.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute top-1 left-1">
-            <span className="text-lg">{getTypeIcon(spot.type)}</span>
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-1">
-            <h3 className="font-semibold text-gray-800 truncate">{spot.name}</h3>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(spot.id);
-              }}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <Heart className={`w-4 h-4 ${favoritSpots.includes(spot.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-            </button>
-          </div>
-
-          <p className="text-sm text-gray-600 mb-2 truncate">{spot.address}</p>
-
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm text-gray-500">📍 {spot.distance}m</span>
-            <span className="text-sm text-gray-500">🚶 {spot.walkingTime} Min</span>
-            <span className="text-sm font-medium text-blue-600">€{spot.pricing.hourly}/h</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded-full text-xs font-medium ${getOccupancyColor(spot.occupancyRate)}`}>
-                {spot.availableSpaces} frei
-              </div>
-              <span className="text-xs text-gray-500">
-                {getAvailabilityText(spot.availableSpaces, spot.totalSpaces)}
-              </span>
-            </div>
-
-            {spot.rating && (
-              <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                <span className="text-xs text-gray-600">{spot.rating}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const FavoriteSpots = () => {
-    const favorites = parkingSpots.filter(spot => favoritSpots.includes(spot.id));
-    
-    if (favorites.length === 0) return null;
-
-    return (
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-800 px-4 mb-3">⭐ Favoriten</h2>
-        <div className="flex gap-3 px-4 overflow-x-auto">
-          {favorites.map((spot) => (
-            <div
-              key={spot.id}
-              className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 min-w-[200px] cursor-pointer hover:shadow-md transition-all"
-              onClick={() => setSelectedSpot(spot)}
-            >
-              <h4 className="font-medium text-gray-800 mb-1 truncate">{spot.name}</h4>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-gray-500">{spot.distance}m</span>
-                <div className={`px-2 py-1 rounded-full text-xs ${getOccupancyColor(spot.occupancyRate)}`}>
-                  {spot.availableSpaces} frei
-                </div>
-              </div>
-              <div className="text-sm font-medium text-blue-600">€{spot.pricing.hourly}/h</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const ActiveReservations = () => {
-    const activeReservations = reservations.filter(r => r.status === 'upcoming' || r.status === 'active');
-    const activeSessions = parkingSessions.filter(s => s.status === 'active');
-    
-    if (activeReservations.length === 0 && activeSessions.length === 0) return null;
-
-    return (
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-800 px-4 mb-3">
-          📅 Aktuelle Buchungen & Sessions
-        </h2>
-        <div className="space-y-3 px-4">
-          {/* Active Sessions */}
-          {activeSessions.map((session) => (
-            <div key={session.id} className="bg-green-50 border border-green-200 p-4 rounded-xl">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-semibold text-gray-800">{session.spotName}</h4>
-                  <p className="text-sm text-green-700">🟢 Aktive Parkzeit</p>
-                </div>
-                <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                  AKTIV
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-gray-600">Gestartet:</span>
-                  <div className="font-medium">{session.startTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Platz:</span>
-                  <div className="font-medium">{session.spaceNumber}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Bisherige Kosten:</span>
-                  <div className="font-medium">€{session.cost.toFixed(2)}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Zahlungsart:</span>
-                  <div className="font-medium">{session.paymentMethod}</div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors">
-                  ⏰ Zeit verlängern
-                </button>
-                <button className="bg-white border border-green-200 text-green-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors">
-                  🚗 Beenden
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {/* Upcoming Reservations */}
-          {activeReservations.map((reservation) => (
-            <div key={reservation.id} className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-semibold text-gray-800">{reservation.spotName}</h4>
-                  <p className="text-sm text-blue-700">
-                    {reservation.status === 'active' ? '🟢 Aktive Reservierung' : '🔵 Kommende Reservierung'}
-                  </p>
-                </div>
-                <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                  {reservation.confirmationCode}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-gray-600">Start:</span>
-                  <div className="font-medium">{reservation.startTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Ende:</span>
-                  <div className="font-medium">{reservation.endTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Platz:</span>
-                  <div className="font-medium">{reservation.spaceNumber || 'Wird zugewiesen'}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Kosten:</span>
-                  <div className="font-medium">€{reservation.cost.toFixed(2)}</div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button className="flex-1 bg-blue-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
-                  🧭 Navigation
-                </button>
-                <button className="bg-white border border-blue-200 text-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                  Ändern
-                </button>
-                <button className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors">
-                  Stornieren
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
+  // Detail Modal - Navigation-Style
   const ParkingSpotDetail = () => {
     if (!selectedSpot) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
-        <div className="bg-white rounded-t-2xl w-full max-h-[85vh] overflow-hidden">
-          {/* Header */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end">
+        <div className="bg-white rounded-t-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="relative">
-            <img
-              src={selectedSpot.image}
-              alt={selectedSpot.name}
-              className="w-full h-48 object-cover"
-            />
-            <button
-              onClick={() => setSelectedSpot(null)}
-              className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full"
-            >
-              <XCircle className="w-5 h-5" />
-            </button>
-            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-              {getTypeIcon(selectedSpot.type)} {selectedSpot.type}
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-4 overflow-y-auto max-h-[calc(85vh-12rem)]">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">{selectedSpot.name}</h2>
-                <p className="text-gray-600">{selectedSpot.address}</p>
-              </div>
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
               <button
-                onClick={() => toggleFavorite(selectedSpot.id)}
-                className="p-2 hover:bg-gray-100 rounded-full"
+                onClick={() => setSelectedSpot(null)}
+                className="absolute top-4 right-4 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors"
               >
-                <Heart className={`w-6 h-6 ${favoritSpots.includes(selectedSpot.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                <X className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Availability Status */}
-            <div className="bg-gray-50 p-4 rounded-xl mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-800">Verfügbarkeit</h3>
-                <span className="text-xs text-gray-500">
-                  Aktualisiert: {selectedSpot.lastUpdated.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-2xl font-bold text-green-600">{selectedSpot.availableSpaces}</div>
-                  <div className="text-sm text-gray-600">Freie Plätze</div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">{getSpotIcon(selectedSpot.type)}</span>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-800">{selectedSpot.totalSpaces}</div>
-                  <div className="text-sm text-gray-600">Gesamt</div>
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Auslastung</span>
-                  <span>{selectedSpot.occupancyRate}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all ${
-                      selectedSpot.occupancyRate < 50 ? 'bg-green-500' :
-                      selectedSpot.occupancyRate < 80 ? 'bg-yellow-500' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${selectedSpot.occupancyRate}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-          {/* Predictions */}
-            <div className="bg-blue-50 p-4 rounded-xl mb-4">
-              <h3 className="font-semibold text-gray-800 mb-3">📊 Verfügbarkeits-Vorhersage</h3>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <div className="font-medium text-blue-600">{selectedSpot.predictions.nextHour}</div>
-                  <div className="text-xs text-gray-600">in 1h</div>
-                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                    <div 
-                      className="bg-blue-500 h-1 rounded-full" 
-                      style={{ width: `${(selectedSpot.predictions.nextHour / selectedSpot.totalSpaces) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-blue-600">{selectedSpot.predictions.next2Hours}</div>
-                  <div className="text-xs text-gray-600">in 2h</div>
-                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                    <div 
-                      className="bg-blue-500 h-1 rounded-full" 
-                      style={{ width: `${(selectedSpot.predictions.next2Hours / selectedSpot.totalSpaces) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-blue-600">{selectedSpot.predictions.next4Hours}</div>
-                  <div className="text-xs text-gray-600">in 4h</div>
-                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                    <div 
-                      className="bg-blue-500 h-1 rounded-full" 
-                      style={{ width: `${(selectedSpot.predictions.next4Hours / selectedSpot.totalSpaces) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Best time recommendation */}
-              <div className="mt-3 p-2 bg-white rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-gray-800">
-                    Beste Zeit: {selectedSpot.predictions.next4Hours > selectedSpot.predictions.nextHour ? 'Jetzt' : 'In 4 Stunden'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="bg-white border border-gray-200 p-4 rounded-xl mb-4">
-              <h3 className="font-semibold text-gray-800 mb-3">💰 Preise</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Pro Stunde</span>
-                  <span className="font-semibold">€{selectedSpot.pricing.hourly.toFixed(2)}</span>
-                </div>
-                {selectedSpot.pricing.daily && (
-                  <div className="flex justify-between">
-                    <span>Tagespauschale</span>
-                    <span className="font-semibold">€{selectedSpot.pricing.daily.toFixed(2)}</span>
-                  </div>
-                )}
-                {selectedSpot.pricing.monthly && (
-                  <div className="flex justify-between">
-                    <span>Monatskarte</span>
-                    <span className="font-semibold">€{selectedSpot.pricing.monthly.toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Information */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">📍 Entfernung</h4>
-                <div className="text-sm text-gray-600">
-                  <div>{selectedSpot.distance}m entfernt</div>
-                  <div>🚶 {selectedSpot.walkingTime} Min zu Fuß</div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">🕐 Öffnungszeiten</h4>
-                <div className="text-sm text-gray-600">
-                  {selectedSpot.openHours || 'Nicht angegeben'}
-                </div>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="mb-4">
-              <h4 className="font-semibold text-gray-800 mb-2">✨ Ausstattung</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedSpot.features.map((feature) => (
-                  <span
-                    key={feature}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                  >
-                    {feature}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Amenities */}
-            {selectedSpot.amenities.length > 0 && (
-              <div className="mb-4">
-                <h4 className="font-semibold text-gray-800 mb-2">🏢 Services</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedSpot.amenities.map((amenity) => (
-                    <span
-                      key={amenity}
-                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"
-                    >
-                      {amenity}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Restrictions */}
-            {selectedSpot.restrictions.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-800 mb-2">⚠️ Beschränkungen</h4>
-                <div className="space-y-1">
-                  {selectedSpot.restrictions.map((restriction, index) => (
-                    <div key={index} className="text-sm text-orange-700 bg-orange-50 px-3 py-1 rounded">
-                      {restriction}
+                  <h2 className="text-2xl font-bold">{selectedSpot.name}</h2>
+                  <p className="text-blue-100">{selectedSpot.address}</p>
+                  {selectedSpot.rating && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span className="text-blue-100">{selectedSpot.rating}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Payment Methods */}
-            <div className="mb-6">
-              <h4 className="font-semibold text-gray-800 mb-2">💳 Zahlungsmethoden</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedSpot.paymentMethods.map((method) => (
-                  <span
-                    key={method}
-                    className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
-                  >
-                    {method}
-                  </span>
-                ))}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="border-t border-gray-200 p-4 bg-white">
+          <div className="p-4">
+            <div className="bg-gray-50 p-4 rounded-xl mb-4">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className={`text-2xl font-bold ${getAvailabilityColor(selectedSpot.availableSpaces, selectedSpot.totalSpaces)}`}>
+                    {selectedSpot.availableSpaces}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {selectedSpot.totalSpaces ? `von ${selectedSpot.totalSpaces}` : 'frei'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {selectedSpot.hourlyPrice === 0 ? 'Frei' : `€${selectedSpot.hourlyPrice}`}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {selectedSpot.hourlyPrice === 0 ? '' : 'pro Stunde'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-gray-800">{selectedSpot.walkingTime}</div>
+                  <div className="text-sm text-gray-600">Min zu Fuß</div>
+                </div>
+              </div>
+            </div>
+
+            {selectedSpot.pricing && (
+              <div className="bg-blue-50 p-4 rounded-xl mb-4">
+                <h4 className="font-semibold text-blue-800 mb-2">Preise</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between">
+                    <span>Stunde:</span>
+                    <span className="font-medium">€{selectedSpot.pricing.hourly}</span>
+                  </div>
+                  {selectedSpot.pricing.daily && (
+                    <div className="flex justify-between">
+                      <span>Tag:</span>
+                      <span className="font-medium">€{selectedSpot.pricing.daily}</span>
+                    </div>
+                  )}
+                  {selectedSpot.pricing.monthly && (
+                    <div className="flex justify-between">
+                      <span>Monat:</span>
+                      <span className="font-medium">€{selectedSpot.pricing.monthly}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4 mb-6">
+              {selectedSpot.features && selectedSpot.features.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2">Ausstattung</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSpot.features.map((feature) => (
+                      <span
+                        key={feature}
+                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedSpot.amenities && selectedSpot.amenities.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2">Services</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSpot.amenities.map((amenity) => (
+                      <span
+                        key={amenity}
+                        className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => startNavigation(selectedSpot)}
+                onClick={() => alert(`Navigation zu ${selectedSpot.name} gestartet!`)}
                 className="bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
               >
                 <Navigation className="w-5 h-5" />
@@ -1111,107 +747,73 @@ const ParkingPage = () => {
                 Reservieren
               </button>
             </div>
-            <button
-              onClick={() => alert('Parkvorgang gestartet!')}
-              className="w-full bg-purple-500 text-white py-3 rounded-xl font-semibold hover:bg-purple-600 transition-colors mt-3 flex items-center justify-center gap-2"
-            >
-              <Car className="w-5 h-5" />
-              Jetzt parken
-            </button>
           </div>
         </div>
       </div>
     );
   };
 
+  // Reservierungs-Modal
   const ReservationModal = () => {
-    if (!showReservation || !selectedSpot) return null;
-
-    const totalCost = selectedSpot.pricing.hourly * reservationDuration;
+    if (!showReservation) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl w-full max-w-md">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Reservierung</h2>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-gray-800">Parkplatz reservieren</h3>
+            <button
+              onClick={() => setShowReservation(false)}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ankunftszeit
+              </label>
+              <input
+                type="datetime-local"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Parkdauer
+              </label>
+              <select className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>1 Stunde</option>
+                <option>2 Stunden</option>
+                <option>4 Stunden</option>
+                <option>Ganzer Tag</option>
+              </select>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span>Geschätzte Kosten:</span>
+                <span className="font-semibold">€{selectedSpot?.hourlyPrice || 0}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowReservation(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <h3 className="font-semibold text-gray-800 mb-1">{selectedSpot.name}</h3>
-              <p className="text-sm text-gray-600">{selectedSpot.address}</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parkdauer
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setReservationDuration(Math.max(1, reservationDuration - 1))}
-                    className="bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center"
-                  >
-                    -
-                  </button>
-                  <span className="font-semibold text-lg">{reservationDuration}h</span>
-                  <button
-                    onClick={() => setReservationDuration(Math.min(8, reservationDuration + 1))}
-                    className="bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Startzeit:</span>
-                  <span className="font-medium">
-                    {new Date(Date.now() + 900000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Endzeit:</span>
-                  <span className="font-medium">
-                    {new Date(Date.now() + 900000 + (reservationDuration * 3600000)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Stündlicher Preis:</span>
-                  <span className="font-medium">€{selectedSpot.pricing.hourly.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-1 mt-2">
-                  <div className="flex justify-between font-semibold">
-                    <span>Gesamtkosten:</span>
-                    <span>€{totalCost.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-xs text-gray-500">
-                • Reservierung 15 Min vor der Zeit verfügbar
-                • Kostenlose Stornierung bis 30 Min vorher
-                • Platz wird automatisch zugewiesen
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowReservation(false)}
-                className="flex-1 bg-gray-100 text-gray-800 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
               >
                 Abbrechen
               </button>
               <button
-                onClick={() => makeReservation(selectedSpot, reservationDuration)}
-                className="flex-1 bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors"
+                onClick={() => {
+                  alert('Reservierung erfolgreich!');
+                  setShowReservation(false);
+                  setSelectedSpot(null);
+                }}
+                className="bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
               >
                 Reservieren
               </button>
@@ -1222,182 +824,190 @@ const ParkingPage = () => {
     );
   };
 
-  const BottomNavigation = () => (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg">
-      <div className="flex justify-around items-center max-w-md mx-auto">
-        <Link href="/" className="flex flex-col items-center gap-1 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <Home className="w-6 h-6 text-gray-600" />
-          <span className="text-xs text-gray-600 font-medium">Home</span>
-        </Link>
-        
-        <Link href="/navigation" className="flex flex-col items-center gap-1 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <Navigation className="w-6 h-6 text-gray-600" />
-          <span className="text-xs text-gray-600 font-medium">Navigation</span>
-        </Link>
-        
-        <Link href="/shopping" className="flex flex-col items-center gap-1 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <ShoppingBag className="w-6 h-6 text-gray-600" />
-          <span className="text-xs text-gray-600 font-medium">Shopping</span>
-        </Link>
-        
-        <Link href="/vouchers" className="flex flex-col items-center gap-1 p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <Gift className="w-6 h-6 text-gray-600" />
-          <span className="text-xs text-gray-600 font-medium">Gutscheine</span>
-        </Link>
-        
-        <div className="flex flex-col items-center gap-1 p-2 bg-blue-100 rounded-lg">
-          <Car className="w-6 h-6 text-blue-600" />
-          <span className="text-xs text-blue-600 font-medium">Parking</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  const ListView = () => (
-    <div className="flex-1 overflow-y-auto pb-20">
-      <SearchAndFilters />
-      <QuickStats />
-      <FavoriteSpots />
-      <ActiveReservations />
-      
-      <div className="px-4 mb-4">
-        <h2 className="text-lg font-bold text-gray-800 mb-3">
-          {searchQuery ? 'Suchergebnisse' : 'Parkplätze in der Nähe'}
-        </h2>
-      </div>
-
-      {filteredAndSortedSpots.length > 0 ? (
-        <div>
-          {filteredAndSortedSpots.map((spot) => (
-            <ParkingSpotCard key={spot.id} spot={spot} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 px-4">
-          <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">Keine Parkplätze gefunden</h3>
-          <p className="text-gray-500">Versuchen Sie andere Suchbegriffe oder Filter</p>
-        </div>
-      )}
-    </div>
-  );
-
-  const MapView = () => (
-    <div className="flex-1 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gray-200">
-        <img
-          src="https://images.unsplash.com/photo-1486312338219-ce68e2c6c4d5?w=800&h=600&fit=crop"
-          alt="Braunschweig Parking Map"
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-      {/* Map Markers */}
-      {filteredAndSortedSpots.slice(0, 6).map((spot, index) => (
-        <div
-          key={spot.id}
-          className={`absolute cursor-pointer transition-all hover:scale-110`}
-          style={{
-            left: `${15 + index * 12}%`,
-            top: `${25 + index * 8}%`
-          }}
-          onClick={() => setSelectedSpot(spot)}
-        >
-          <div className={`p-2 rounded-full shadow-lg ${
-            spot.availableSpaces > 10 ? 'bg-green-500' :
-            spot.availableSpaces > 0 ? 'bg-yellow-500' : 'bg-red-500'
-          } text-white font-bold text-sm`}>
-            {spot.availableSpaces}
-          </div>
-          <div className="bg-white px-2 py-1 rounded shadow-md text-xs font-medium mt-1 min-w-max">
-            {spot.name}
-          </div>
-        </div>
-      ))}
-
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
-        <button className="bg-white p-2 rounded-lg shadow-md">
-          <Target className="w-5 h-5" />
-        </button>
-        <button className="bg-white p-2 rounded-lg shadow-md">
-          <Compass className="w-5 h-5" />
-        </button>
-      </div>
-
-      <button
-        onClick={() => setCurrentView('list')}
-        className="absolute top-4 left-4 bg-white p-2 rounded-lg shadow-md"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-    </div>
-  );
-
-  const ARView = () => (
-    <div className="flex-1 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-blue-400 via-sky-300 to-green-300">
-        <img
-          src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&h=600&fit=crop"
-          alt="Braunschweig AR Parking View"
-          className="w-full h-full object-cover opacity-80"
-        />
-      </div>
-
-      {/* AR Overlays */}
-      <div className="absolute inset-0">
-        {/* AR Parking Markers */}
-        {filteredAndSortedSpots.slice(0, 3).map((spot, index) => (
-          <div
-            key={spot.id}
-            className="absolute bg-blue-500 text-white p-3 rounded-lg shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
-            style={{
-              left: `${30 + index * 20}%`,
-              top: `${40 + index * 15}%`
-            }}
-            onClick={() => setSelectedSpot(spot)}
-          >
-            <div className="text-sm font-medium">{spot.name}</div>
-            <div className="text-xs opacity-90">{spot.distance}m</div>
-            <div className="text-xs">
-              {spot.availableSpaces} Plätze frei
-            </div>
-          </div>
-        ))}
-
-        {/* AR Instructions */}
-        <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm text-white p-4 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold mb-1">AR-Parkplatzfinder</h3>
-              <p className="text-sm opacity-90">Bewegen Sie Ihr Gerät, um Parkplätze zu finden</p>
-            </div>
-            <button
-              onClick={() => setCurrentView('list')}
-              className="bg-white text-black px-3 py-1 rounded-lg text-sm"
-            >
-              Beenden
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Main render
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
-      <StatusBar />
-      
-      {currentView === 'list' && <ListView />}
-      {currentView === 'map' && <MapView />}
-      {currentView === 'ar' && <ARView />}
-      
-      <BottomNavigation />
-      
-      {selectedSpot && <ParkingSpotDetail />}
-      {showReservation && <ReservationModal />}
-    </div>
+    <>
+      <Head>
+        <title>Parking - BS.Smart Braunschweig</title>
+        <meta name="description" content="Finden Sie freie Parkplätze in Braunschweig mit OpenStreetMap Integration" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen">
+          {/* Header - Navigation Style */}
+          <div className="bg-blue-600 text-white p-4">
+            <div className="flex items-center justify-between mb-4">
+              <Link href="/" className="p-2 hover:bg-blue-700 rounded-lg transition-colors">
+                <ArrowLeft className="w-6 h-6" />
+              </Link>
+              <h1 className="text-xl font-bold">Parking</h1>
+              <button
+                onClick={loadOSMData}
+                disabled={osmLoading}
+                className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                {osmLoading ? (
+                  <Loader className="w-6 h-6 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-6 h-6" />
+                )}
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-300" />
+              <input
+                type="text"
+                placeholder="Parkplatz suchen..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-blue-500/30 border border-blue-400 rounded-xl placeholder-blue-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="bg-white border-b border-gray-200 px-4 pt-4">
+            <div className="flex gap-2 overflow-x-auto pb-4">
+              {['Alle', 'Verfügbar', 'Parkhäuser', 'Straßenparkplätze', 'Kostenlos', 'Favoriten'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setSelectedFilter(filter)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
+                    selectedFilter === filter
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sort Options */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3">
+            <div className="flex gap-2 overflow-x-auto">
+              {[
+                { key: 'distance', label: 'Entfernung', icon: MapPin },
+                { key: 'availability', label: 'Verfügbarkeit', icon: Car },
+                { key: 'price', label: 'Preis', icon: Euro },
+                { key: 'rating', label: 'Bewertung', icon: Star }
+              ].map((sort) => {
+                const Icon = sort.icon;
+                return (
+                  <button
+                    key={sort.key}
+                    onClick={() => setSortBy(sort.key)}
+                    className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      sortBy === sort.key
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {sort.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="bg-white px-4 py-3 border-b border-gray-200">
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <div className="text-xl font-bold text-green-600">
+                  {parkingSpots.reduce((sum, spot) => sum + spot.availableSpaces, 0)}
+                </div>
+                <div className="text-xs text-gray-600">Freie Plätze</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-blue-600">
+                  {Math.min(...parkingSpots.map(s => s.hourlyPrice)).toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-600">Ab €/h</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-orange-600">
+                  {streetParking.length}
+                </div>
+                <div className="text-xs text-gray-600">OSM Straßen</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-purple-600">
+                  {favoriteSpots.length}
+                </div>
+                <div className="text-xs text-gray-600">Favoriten</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 pb-24">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-800">
+                {searchQuery ? 'Suchergebnisse' : 'Parkplätze in der Nähe'}
+              </h2>
+              <span className="text-sm text-gray-500">
+                {filteredAndSortedSpots.length} gefunden
+              </span>
+            </div>
+
+            {filteredAndSortedSpots.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredAndSortedSpots.map((spot) => (
+                  <ParkingSpotCard key={spot.id} spot={spot} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">Keine Parkplätze gefunden</h3>
+                <p className="text-gray-500">Versuchen Sie andere Suchbegriffe oder Filter</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Navigation */}
+          <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg">
+            <div className="flex justify-around items-center">
+              <Link href="/" className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500 transition-colors">
+                <Home className="w-6 h-6" />
+                <span className="text-xs font-medium">Home</span>
+              </Link>
+              
+              <Link href="/navigation" className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500 transition-colors">
+                <Navigation className="w-6 h-6" />
+                <span className="text-xs font-medium">Navigation</span>
+              </Link>
+              
+              <Link href="/shopping" className="flex flex-col items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors">
+                <ShoppingBag className="w-6 h-6" />
+                <span className="text-xs font-medium">Shopping</span>
+              </Link>
+              
+              <Link href="/vouchers" className="flex flex-col items-center gap-1 text-gray-400 hover:text-pink-500 transition-colors">
+                <Gift className="w-6 h-6" />
+                <span className="text-xs font-medium">Gutscheine</span>
+              </Link>
+              
+              <div className="flex flex-col items-center gap-1 text-blue-500">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Car className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xs font-medium">Parking</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Modals */}
+          {selectedSpot && <ParkingSpotDetail />}
+          {showReservation && <ReservationModal />}
+        </div>
+      </div>
+    </>
   );
 };
 

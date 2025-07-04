@@ -1,6 +1,5 @@
-// pages/index.tsx
 'use client';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +19,9 @@ interface WeatherData {
   humidity: number;
   windSpeed: number;
   icon: string;
+  feels_like?: number;
+  pressure?: number;
+  visibility?: number;
 }
 
 interface LiveData {
@@ -80,33 +82,132 @@ interface NearbyPlace {
 const useWeatherData = () => {
   const [weather, setWeather] = useState<WeatherData>({
     temperature: 18,
-    condition: 'Heiter',
+    condition: 'Wird geladen...',
     humidity: 65,
     windSpeed: 12,
-    icon: '☀️'
+    icon: '⏳'
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate real weather API call
+    let isMounted = true;
+
     const fetchWeather = async () => {
-      // In real app: fetch from OpenWeatherMap API
-      setTimeout(() => {
+      if (!isMounted) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Braunschweig coordinates
+        const lat = 52.2625;
+        const lng = 10.5211;
+        
+        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+        
+        if (!apiKey) {
+          throw new Error('Weather API key not found');
+        }
+
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=de`
+        );
+
+        if (!response.ok) {
+          throw new Error(`Weather API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Map OpenWeatherMap icons to emojis
+        const getWeatherIcon = (iconCode: string): string => {
+          const iconMap: { [key: string]: string } = {
+            '01d': '☀️', // clear sky day
+            '01n': '🌙', // clear sky night
+            '02d': '⛅', // few clouds day
+            '02n': '☁️', // few clouds night
+            '03d': '☁️', // scattered clouds
+            '03n': '☁️',
+            '04d': '☁️', // broken clouds
+            '04n': '☁️',
+            '09d': '🌧️', // shower rain
+            '09n': '🌧️',
+            '10d': '🌦️', // rain day
+            '10n': '🌧️', // rain night
+            '11d': '⛈️', // thunderstorm
+            '11n': '⛈️',
+            '13d': '❄️', // snow
+            '13n': '❄️',
+            '50d': '🌫️', // mist
+            '50n': '🌫️'
+          };
+          return iconMap[iconCode] || '🌤️';
+        };
+
+        // Map weather conditions to German
+        const getGermanCondition = (condition: string): string => {
+          const conditionMap: { [key: string]: string } = {
+            'clear sky': 'Klarer Himmel',
+            'few clouds': 'Leicht bewölkt',
+            'scattered clouds': 'Bewölkt',
+            'broken clouds': 'Stark bewölkt',
+            'shower rain': 'Schauer',
+            'rain': 'Regen',
+            'thunderstorm': 'Gewitter',
+            'snow': 'Schnee',
+            'mist': 'Nebel',
+            'fog': 'Nebel',
+            'haze': 'Dunst',
+            'overcast clouds': 'Bedeckt'
+          };
+          return conditionMap[condition.toLowerCase()] || condition;
+        };
+
         setWeather({
-          temperature: Math.round(15 + Math.random() * 10),
-          condition: ['Heiter', 'Wolkig', 'Sonnig'][Math.floor(Math.random() * 3)],
-          humidity: Math.round(50 + Math.random() * 30),
-          windSpeed: Math.round(5 + Math.random() * 15),
-          icon: ['☀️', '⛅', '🌤️'][Math.floor(Math.random() * 3)]
+          temperature: Math.round(data.main.temp),
+          condition: getGermanCondition(data.weather[0].description),
+          humidity: data.main.humidity,
+          windSpeed: Math.round(data.wind?.speed * 3.6) || 0, // Convert m/s to km/h
+          icon: getWeatherIcon(data.weather[0].icon)
         });
-      }, 1000);
+        
+      } catch (err) {
+        if (isMounted) {
+          setError('Wetterdaten konnten nicht geladen werden');
+          
+          // Fallback to mock data
+          setWeather({
+            temperature: Math.round(15 + Math.random() * 10),
+            condition: 'Wetter nicht verfügbar',
+            humidity: Math.round(50 + Math.random() * 30),
+            windSpeed: Math.round(5 + Math.random() * 15),
+            icon: '🌤️'
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
     fetchWeather();
-    const interval = setInterval(fetchWeather, 300000); // Update every 5 minutes
-    return () => clearInterval(interval);
-  }, []);
+    
+    // Update every 20 minutes (1200000 milliseconds)
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchWeather();
+      }
+    }, 1200000); // Changed from 600000 (10 minutes) to 1200000 (20 minutes)
 
-  return weather;
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []); // Empty dependency array
+
+  return { weather, loading, error };
 };
 
 const useLiveData = () => {
@@ -119,17 +220,32 @@ const useLiveData = () => {
   });
 
   useEffect(() => {
-    // Simulate real-time data updates
     const updateLiveData = () => {
-      setLiveData(prev => ({
-        ...prev,
-        busDelays: Math.max(0, prev.busDelays + (Math.random() - 0.5) * 2),
-        parkingSpaces: Math.max(0, Math.min(200, prev.parkingSpaces + Math.floor((Math.random() - 0.5) * 10))),
-        cityBusyness: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high'
-      }));
+      setLiveData(prev => {
+        const newBusDelays = Math.max(0, prev.busDelays + (Math.random() - 0.5) * 2);
+        const newParkingSpaces = Math.max(0, Math.min(200, prev.parkingSpaces + Math.floor((Math.random() - 0.5) * 10)));
+        const busynessOptions: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
+        const newCityBusyness = busynessOptions[Math.floor(Math.random() * 3)];
+
+        // Only update if values actually changed significantly
+        if (
+          Math.abs(newBusDelays - prev.busDelays) < 0.1 &&
+          Math.abs(newParkingSpaces - prev.parkingSpaces) < 1 &&
+          newCityBusyness === prev.cityBusyness
+        ) {
+          return prev; // Return same object to prevent re-render
+        }
+
+        return {
+          ...prev,
+          busDelays: newBusDelays,
+          parkingSpaces: newParkingSpaces,
+          cityBusyness: newCityBusyness
+        };
+      });
     };
 
-    const interval = setInterval(updateLiveData, 30000); // Update every 30 seconds
+    const interval = setInterval(updateLiveData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -149,14 +265,20 @@ const useUserStats = () => {
     }
   });
 
-  // Simulate points increasing
   useEffect(() => {
     const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        points: prev.points + Math.floor(Math.random() * 5)
-      }));
-    }, 60000); // Add points every minute
+      setStats(prev => {
+        const pointsIncrease = Math.floor(Math.random() * 5);
+        if (pointsIncrease === 0) {
+          return prev; // Don't update if no points to add
+        }
+        
+        return {
+          ...prev,
+          points: prev.points + pointsIncrease
+        };
+      });
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
@@ -169,8 +291,7 @@ const HomePage: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'today' | 'nearby' | 'trending'>('today');
   
-  // Custom hooks
-  const weather = useWeatherData();
+  // Custom hooks - remove the weather hook call since it's now inside WeatherWidget
   const liveData = useLiveData();
   const userStats = useUserStats();
 
@@ -180,8 +301,8 @@ const HomePage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Realistic data
-  const achievements: Achievement[] = useMemo(() => [
+  // Memoize static data to prevent recreation
+  const achievements = useMemo(() => [
     {
       id: 'lions',
       title: 'Löwen-Sammler',
@@ -214,7 +335,7 @@ const HomePage: React.FC = () => {
     }
   ], []);
 
-  const featuredEvents: FeaturedEvent[] = useMemo(() => [
+  const featuredEvents = useMemo(() => [
     {
       id: 'jazz-schloss',
       title: 'Jazz unter Sternen',
@@ -250,11 +371,11 @@ const HomePage: React.FC = () => {
     }
   ], []);
 
-  const nearbyPlaces: NearbyPlace[] = useMemo(() => [
+  const nearbyPlaces = useMemo<NearbyPlace[]>(() => [
     {
       id: 'galerie-jaeschke',
       name: 'Galerie Jaeschke',
-      type: 'shop',
+      type: 'shop' as const,
       distance: 150,
       rating: 4.9,
       image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop',
@@ -264,7 +385,7 @@ const HomePage: React.FC = () => {
     {
       id: 'ratskeller',
       name: 'Ratskeller Braunschweig',
-      type: 'restaurant',
+      type: 'restaurant' as const,
       distance: 80,
       rating: 4.6,
       image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&h=200&fit=crop',
@@ -274,7 +395,7 @@ const HomePage: React.FC = () => {
     {
       id: 'dom-blasii',
       name: 'Dom St. Blasii',
-      type: 'attraction',
+      type: 'attraction' as const,
       distance: 220,
       rating: 4.8,
       image: 'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?w=300&h=200&fit=crop',
@@ -330,34 +451,48 @@ const HomePage: React.FC = () => {
     </div>
   );
 
-  const WeatherWidget: React.FC = () => (
-    <div className="bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 text-white p-4 rounded-2xl shadow-lg">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="font-bold text-lg">Braunschweig</h3>
-          <p className="text-blue-100 text-sm">Jetzt gerade</p>
-        </div>
-        <div className="text-right">
-          <div className="text-3xl font-bold">{weather.temperature}°</div>
-          <div className="text-blue-100 text-sm">{weather.condition}</div>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <Eye className="w-4 h-4" />
-            <span>{weather.humidity}%</span>
+  const WeatherWidget: React.FC = React.memo(() => {
+    const { weather, loading, error } = useWeatherData();
+    
+    return (
+      <div className="bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 text-white p-4 rounded-2xl shadow-lg">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="font-bold text-lg">Braunschweig</h3>
+            <p className="text-blue-100 text-sm">
+              {loading ? 'Laden...' : error ? 'Offline' : 'Jetzt gerade'}
+            </p>
           </div>
-          <div className="flex items-center gap-1">
-            <Wind className="w-4 h-4" />
-            <span>{weather.windSpeed}km/h</span>
+          <div className="text-right">
+            <div className="text-3xl font-bold">
+              {loading ? '...' : `${weather.temperature}°`}
+            </div>
+            <div className="text-blue-100 text-sm">{weather.condition}</div>
           </div>
         </div>
-        <div className="text-2xl">{weather.icon}</div>
+        
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Eye className="w-4 h-4" />
+              <span>{weather.humidity}%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Wind className="w-4 h-4" />
+              <span>{weather.windSpeed}km/h</span>
+            </div>
+          </div>
+          <div className="text-2xl">{weather.icon}</div>
+        </div>
+        
+        {error && (
+          <div className="mt-2 text-xs text-blue-200 opacity-75">
+            Offline-Modus aktiv
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  });
 
   const QuickActionCard: React.FC<{
     href: string;
@@ -402,7 +537,7 @@ const HomePage: React.FC = () => {
     </Link>
   );
 
-  const LiveInfoCard: React.FC = () => {
+  const LiveInfoCard: React.FC = React.memo(() => {
     const liveData = useLiveData();
     
     return (
@@ -459,9 +594,9 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     );
-  };
+  });
 
-  const StatsCard: React.FC = () => {
+  const StatsCard: React.FC = React.memo(() => {
     const stats = useUserStats();
     
     return (
@@ -524,7 +659,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     );
-  };
+  });
 
   const EventCard: React.FC<{ event: FeaturedEvent }> = ({ event }) => (
     <Link href={`/events/${event.id}`}>
@@ -669,6 +804,14 @@ const HomePage: React.FC = () => {
                   color="bg-gradient-to-br from-green-500 to-green-600"
                 />
                 <QuickActionCard
+                  href="/events"
+                  icon={<Calendar className="w-6 h-6 text-white" />}
+                  title="Events"
+                  subtitle={`${liveData.eventsToday} Events heute`}
+                  badge={liveData.eventsToday}
+                  color="bg-gradient-to-br from-purple-500 to-purple-600"
+                />
+                <QuickActionCard
                   href="/shopping"
                   icon={<ShoppingBag className="w-6 h-6 text-white" />}
                   title="Shopping"
@@ -696,7 +839,7 @@ const HomePage: React.FC = () => {
                   icon={<Camera className="w-6 h-6 text-white" />}
                   title="AR Tour"
                   subtitle="Löwen-Trail durch die Stadt"
-                  color="bg-gradient-to-br from-purple-500 to-purple-600"
+                  color="bg-gradient-to-br from-indigo-500 to-indigo-600"
                 />
               </div>
             </div>
@@ -871,12 +1014,14 @@ const HomePage: React.FC = () => {
                 <span className="text-xs">Navigation</span>
               </Link>
               
-              <Link href="/shopping" className="flex flex-col items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors relative">
-                <ShoppingBag className="w-6 h-6" />
-                <span className="text-xs">Shopping</span>
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  3
-                </div>
+              <Link href="/events" className="flex flex-col items-center gap-1 text-gray-400 hover:text-purple-500 transition-colors relative">
+                <Calendar className="w-6 h-6" />
+                <span className="text-xs">Events</span>
+                {liveData.eventsToday > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {liveData.eventsToday}
+                  </div>
+                )}
               </Link>
               
               <Link href="/vouchers" className="flex flex-col items-center gap-1 text-gray-400 hover:text-pink-500 transition-colors relative">

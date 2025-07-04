@@ -1020,24 +1020,25 @@ const RestaurantsPage: React.FC = () => {
 
   const ReservationModal: React.FC = () => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end">
-      <div className="bg-white rounded-t-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Tisch reservieren</h2>
+      <div className="bg-white rounded-t-2xl w-full max-h-[75vh] overflow-y-auto">
+        <div className="p-3">
+          {/* Header - viel kompakter */}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-800">Tisch reservieren</h2>
             <button
               onClick={() => setShowReservationModal(false)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {selectedRestaurant && (
             <>
-              {/* Restaurant info */}
-              <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 relative rounded-lg overflow-hidden">
+              {/* Restaurant info - sehr kompakt */}
+              <div className="bg-gray-50 rounded-lg p-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 relative rounded-md overflow-hidden flex-shrink-0">
                     <Image
                       src={selectedRestaurant.images.cover}
                       alt={selectedRestaurant.name}
@@ -1045,39 +1046,38 @@ const RestaurantsPage: React.FC = () => {
                       className="object-cover"
                     />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-800">{selectedRestaurant.name}</h3>
-                    <p className="text-sm text-gray-600">{selectedRestaurant.cuisine} • {selectedRestaurant.priceRange}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-800 text-xs truncate">{selectedRestaurant.name}</h3>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Star className="w-2.5 h-2.5 text-yellow-500 fill-current" />
                       <span>{selectedRestaurant.rating}</span>
                       <span>•</span>
-                      <MapPin className="w-3 h-3" />
                       <span>{selectedRestaurant.distance}m</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Reservation form */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              {/* Reservierungsformular - sehr kompakt */}
+              <div className="space-y-2">
+                {/* Datum und Zeit in einer Zeile */}
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Datum</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Datum</label>
                     <input
                       type="date"
                       value={reservationData.date}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setReservationData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Uhrzeit</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Uhrzeit</label>
                     <select
                       value={reservationData.time}
                       onChange={(e) => setReservationData(prev => ({ ...prev, time: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                     >
                       {['17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'].map(time => (
                         <option key={time} value={time}>{time}</option>
@@ -1086,96 +1086,89 @@ const RestaurantsPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Personen - kompakter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Anzahl Personen</label>
-                  <div className="flex items-center gap-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Personen</label>
+                  <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => setReservationData(prev => ({ ...prev, guests: Math.max(1, prev.guests - 1) }))}
-                      className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                      className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors text-sm"
                     >
-                      <Users className="w-4 h-4" />
+                      −
                     </button>
-                    <span className="text-2xl font-bold text-gray-800 min-w-[2rem] text-center">
+                    <span className="text-base font-bold text-gray-800 min-w-[1.5rem] text-center">
                       {reservationData.guests}
                     </span>
                     <button
                       onClick={() => setReservationData(prev => ({ ...prev, guests: Math.min(12, prev.guests + 1) }))}
-                      className="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                      className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-sm"
                     >
-                      <Users className="w-4 h-4" />
+                      +
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Für Gruppen ab 8 Personen rufen Sie bitte an</p>
                 </div>
 
+                {/* Besondere Wünsche - kompakter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Besondere Wünsche</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Wünsche (optional)</label>
                   <textarea
                     value={reservationData.specialRequests}
                     onChange={(e) => setReservationData(prev => ({ ...prev, specialRequests: e.target.value }))}
-                    placeholder="Allergien, Hochstuhl, Fensterplatz..."
-                    rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Allergien, Hochstuhl..."
+                    rows={1}
+                    className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-800">Kontaktdaten</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={reservationData.contactInfo.name}
-                      onChange={(e) => setReservationData(prev => ({
-                        ...prev,
-                        contactInfo: { ...prev.contactInfo, name: e.target.value }
-                      }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                {/* Kontaktdaten - kompakter */}
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-800">Kontakt</h4>
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={reservationData.contactInfo.name}
+                    onChange={(e) => setReservationData(prev => ({
+                      ...prev,
+                      contactInfo: { ...prev.contactInfo, name: e.target.value }
+                    }))}
+                    className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
+                  />
+                  <div className="grid grid-cols-2 gap-1">
                     <input
                       type="tel"
+                      placeholder="Telefon"
                       value={reservationData.contactInfo.phone}
                       onChange={(e) => setReservationData(prev => ({
                         ...prev,
                         contactInfo: { ...prev.contactInfo, phone: e.target.value }
                       }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
                     <input
                       type="email"
+                      placeholder="E-Mail"
                       value={reservationData.contactInfo.email}
                       onChange={(e) => setReservationData(prev => ({
                         ...prev,
                         contactInfo: { ...prev.contactInfo, email: e.target.value }
                       }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full p-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
                 </div>
 
-                {/* Reservation policy */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <h4 className="font-medium text-blue-800 mb-2">Reservierungshinweise</h4>
-                  <ul className="space-y-1 text-sm text-blue-700">
-                    {selectedRestaurant.reservationPolicy.map((policy, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                        <span>{policy}</span>
-                      </li>
-                    ))}
-                  </ul>
+                {/* Hinweise - sehr kompakt */}
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+                  <p className="text-xs text-blue-700">
+                    <strong>Wichtig:</strong> Stornierung bis 24h vorher kostenfrei. 
+                    Bei Verspätung über 15 Min kann Tisch weitergegeben werden.
+                  </p>
                 </div>
 
-                {/* Submit button */}
+                {/* Submit button - kompakter */}
                 <button
                   onClick={makeReservation}
-                  className="w-full bg-red-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-red-600 transition-colors"
+                  className="w-full bg-red-500 text-white py-2 rounded-md font-bold hover:bg-red-600 transition-colors text-sm"
                 >
                   Jetzt reservieren
                 </button>
