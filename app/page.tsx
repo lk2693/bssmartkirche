@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -78,138 +78,163 @@ interface NearbyPlace {
   specialOffer?: string;
 }
 
-// Custom hooks
+// Optimized Weather Hook with caching and debouncing
 const useWeatherData = () => {
   const [weather, setWeather] = useState<WeatherData>({
     temperature: 18,
-    condition: 'Wird geladen...',
+    condition: 'Leicht bewölkt',
     humidity: 65,
     windSpeed: 12,
-    icon: '⏳'
+    icon: '🌤️'
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<number>(0);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const isMountedRef = useRef(true);
+
+  // Cache weather data for 30 minutes
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+  const UPDATE_INTERVAL = 20 * 60 * 1000; // 20 minutes
+
+  const fetchWeather = useCallback(async (force = false) => {
+    const now = Date.now();
+    
+    // Check if we need to fetch (force or cache expired)
+    if (!force && now - lastFetch < CACHE_DURATION) {
+      return;
+    }
+
+    if (!isMountedRef.current) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Braunschweig coordinates
+      const lat = 52.2625;
+      const lng = 10.5211;
+      
+      const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('Weather API key not found');
+      }
+
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=de`,
+        {
+          next: { revalidate: 1800 } // Cache for 30 minutes
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Weather API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!isMountedRef.current) return;
+      
+      // Map OpenWeatherMap icons to emojis
+      const getWeatherIcon = (iconCode: string): string => {
+        const iconMap: { [key: string]: string } = {
+          '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️',
+          '03d': '☁️', '03n': '☁️', '04d': '☁️', '04n': '☁️',
+          '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',
+          '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',
+          '50d': '🌫️', '50n': '🌫️'
+        };
+        return iconMap[iconCode] || '🌤️';
+      };
+
+      // Map weather conditions to German
+      const getGermanCondition = (condition: string): string => {
+        const conditionMap: { [key: string]: string } = {
+          'clear sky': 'Klarer Himmel',
+          'few clouds': 'Leicht bewölkt',
+          'scattered clouds': 'Bewölkt',
+          'broken clouds': 'Stark bewölkt',
+          'shower rain': 'Schauer',
+          'rain': 'Regen',
+          'thunderstorm': 'Gewitter',
+          'snow': 'Schnee',
+          'mist': 'Nebel',
+          'fog': 'Nebel',
+          'haze': 'Dunst',
+          'overcast clouds': 'Bedeckt'
+        };
+        return conditionMap[condition.toLowerCase()] || condition;
+      };
+
+      const newWeatherData = {
+        temperature: Math.round(data.main.temp),
+        condition: getGermanCondition(data.weather[0].description),
+        humidity: data.main.humidity,
+        windSpeed: Math.round(data.wind?.speed * 3.6) || 0,
+        icon: getWeatherIcon(data.weather[0].icon)
+      };
+
+      // Only update if weather data actually changed significantly
+      setWeather(prev => {
+        const tempChanged = Math.abs(prev.temperature - newWeatherData.temperature) >= 1;
+        const conditionChanged = prev.condition !== newWeatherData.condition;
+        const humidityChanged = Math.abs(prev.humidity - newWeatherData.humidity) >= 5;
+        const windChanged = Math.abs(prev.windSpeed - newWeatherData.windSpeed) >= 2;
+
+        if (tempChanged || conditionChanged || humidityChanged || windChanged) {
+          return newWeatherData;
+        }
+        return prev;
+      });
+      
+      setLastFetch(now);
+      
+    } catch (err) {
+      if (isMountedRef.current) {
+        setError('Wetter offline');
+        
+        // Keep existing data, don't fallback to random values
+        // This prevents the jumping
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [lastFetch]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchWeather = async () => {
-      if (!isMounted) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Braunschweig coordinates
-        const lat = 52.2625;
-        const lng = 10.5211;
-        
-        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-        
-        if (!apiKey) {
-          throw new Error('Weather API key not found');
-        }
-
-        const response = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=de`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Weather API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Map OpenWeatherMap icons to emojis
-        const getWeatherIcon = (iconCode: string): string => {
-          const iconMap: { [key: string]: string } = {
-            '01d': '☀️', // clear sky day
-            '01n': '🌙', // clear sky night
-            '02d': '⛅', // few clouds day
-            '02n': '☁️', // few clouds night
-            '03d': '☁️', // scattered clouds
-            '03n': '☁️',
-            '04d': '☁️', // broken clouds
-            '04n': '☁️',
-            '09d': '🌧️', // shower rain
-            '09n': '🌧️',
-            '10d': '🌦️', // rain day
-            '10n': '🌧️', // rain night
-            '11d': '⛈️', // thunderstorm
-            '11n': '⛈️',
-            '13d': '❄️', // snow
-            '13n': '❄️',
-            '50d': '🌫️', // mist
-            '50n': '🌫️'
-          };
-          return iconMap[iconCode] || '🌤️';
-        };
-
-        // Map weather conditions to German
-        const getGermanCondition = (condition: string): string => {
-          const conditionMap: { [key: string]: string } = {
-            'clear sky': 'Klarer Himmel',
-            'few clouds': 'Leicht bewölkt',
-            'scattered clouds': 'Bewölkt',
-            'broken clouds': 'Stark bewölkt',
-            'shower rain': 'Schauer',
-            'rain': 'Regen',
-            'thunderstorm': 'Gewitter',
-            'snow': 'Schnee',
-            'mist': 'Nebel',
-            'fog': 'Nebel',
-            'haze': 'Dunst',
-            'overcast clouds': 'Bedeckt'
-          };
-          return conditionMap[condition.toLowerCase()] || condition;
-        };
-
-        setWeather({
-          temperature: Math.round(data.main.temp),
-          condition: getGermanCondition(data.weather[0].description),
-          humidity: data.main.humidity,
-          windSpeed: Math.round(data.wind?.speed * 3.6) || 0, // Convert m/s to km/h
-          icon: getWeatherIcon(data.weather[0].icon)
-        });
-        
-      } catch (err) {
-        if (isMounted) {
-          setError('Wetterdaten konnten nicht geladen werden');
-          
-          // Fallback to mock data
-          setWeather({
-            temperature: Math.round(15 + Math.random() * 10),
-            condition: 'Wetter nicht verfügbar',
-            humidity: Math.round(50 + Math.random() * 30),
-            windSpeed: Math.round(5 + Math.random() * 15),
-            icon: '🌤️'
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
+    isMountedRef.current = true;
+    
+    // Initial fetch
     fetchWeather();
     
-    // Update every 20 minutes (1200000 milliseconds)
+    // Set up interval for updates
     const interval = setInterval(() => {
-      if (isMounted) {
+      if (isMountedRef.current) {
         fetchWeather();
       }
-    }, 1200000); // Changed from 600000 (10 minutes) to 1200000 (20 minutes)
+    }, UPDATE_INTERVAL);
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       clearInterval(interval);
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     };
-  }, []); // Empty dependency array
+  }, [fetchWeather]);
 
-  return { weather, loading, error };
+  // Manual refresh function
+  const refreshWeather = useCallback(() => {
+    fetchWeather(true);
+  }, [fetchWeather]);
+
+  return { weather, loading, error, refreshWeather };
 };
 
+// Optimized Live Data Hook
 const useLiveData = () => {
   const [liveData, setLiveData] = useState<LiveData>({
     busDelays: 2,
@@ -218,40 +243,51 @@ const useLiveData = () => {
     eventsToday: 5,
     airQuality: 85
   });
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     const updateLiveData = () => {
+      if (!isMountedRef.current) return;
+      
       setLiveData(prev => {
-        const newBusDelays = Math.max(0, prev.busDelays + (Math.random() - 0.5) * 2);
-        const newParkingSpaces = Math.max(0, Math.min(200, prev.parkingSpaces + Math.floor((Math.random() - 0.5) * 10)));
-        const busynessOptions: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
-        const newCityBusyness = busynessOptions[Math.floor(Math.random() * 3)];
+        // Generate smaller, more realistic changes
+        const busDelayChange = (Math.random() - 0.5) * 0.5; // Max ±0.25 minutes
+        const parkingChange = Math.floor((Math.random() - 0.5) * 6); // Max ±3 spaces
+        
+        const newBusDelays = Math.max(0, Math.min(10, prev.busDelays + busDelayChange));
+        const newParkingSpaces = Math.max(50, Math.min(200, prev.parkingSpaces + parkingChange));
 
-        // Only update if values actually changed significantly
+        // Only update if changes are significant enough
         if (
           Math.abs(newBusDelays - prev.busDelays) < 0.1 &&
-          Math.abs(newParkingSpaces - prev.parkingSpaces) < 1 &&
-          newCityBusyness === prev.cityBusyness
+          Math.abs(newParkingSpaces - prev.parkingSpaces) < 1
         ) {
-          return prev; // Return same object to prevent re-render
+          return prev;
         }
 
         return {
           ...prev,
-          busDelays: newBusDelays,
-          parkingSpaces: newParkingSpaces,
-          cityBusyness: newCityBusyness
+          busDelays: Math.round(newBusDelays * 10) / 10, // Round to 1 decimal
+          parkingSpaces: Math.round(newParkingSpaces)
         };
       });
     };
 
-    const interval = setInterval(updateLiveData, 30000);
-    return () => clearInterval(interval);
+    // Less frequent updates to prevent jumping
+    const interval = setInterval(updateLiveData, 45000); // Every 45 seconds
+    
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return liveData;
 };
 
+// Stable User Stats Hook
 const useUserStats = () => {
   const [stats, setStats] = useState<UserStats>({
     points: 1847,
@@ -264,13 +300,20 @@ const useUserStats = () => {
       savings: 15
     }
   });
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     const interval = setInterval(() => {
+      if (!isMountedRef.current) return;
+      
       setStats(prev => {
-        const pointsIncrease = Math.floor(Math.random() * 5);
+        // Very slow point accumulation to prevent jumping
+        const pointsIncrease = Math.random() < 0.1 ? Math.floor(Math.random() * 3) + 1 : 0;
+        
         if (pointsIncrease === 0) {
-          return prev; // Don't update if no points to add
+          return prev;
         }
         
         return {
@@ -278,9 +321,12 @@ const useUserStats = () => {
           points: prev.points + pointsIncrease
         };
       });
-    }, 60000);
+    }, 120000); // Every 2 minutes
 
-    return () => clearInterval(interval);
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return stats;
@@ -291,17 +337,17 @@ const HomePage: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'today' | 'nearby' | 'trending'>('today');
   
-  // Custom hooks - remove the weather hook call since it's now inside WeatherWidget
+  // Use optimized hooks
   const liveData = useLiveData();
   const userStats = useUserStats();
 
-  // Real-time clock
+  // Stable time updates
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute instead of every second
     return () => clearInterval(timer);
   }, []);
 
-  // Memoize static data to prevent recreation
+  // Memoize static data with proper dependencies
   const achievements = useMemo(() => [
     {
       id: 'lions',
@@ -311,7 +357,7 @@ const HomePage: React.FC = () => {
       maxProgress: 12,
       icon: '🦁',
       reward: '500 Punkte + Löwen-Badge',
-      category: 'exploration'
+      category: 'exploration' as const
     },
     {
       id: 'local-hero',
@@ -321,7 +367,7 @@ const HomePage: React.FC = () => {
       maxProgress: 10,
       icon: '🏪',
       reward: '50€ Gutschein-Paket',
-      category: 'shopping'
+      category: 'shopping' as const
     },
     {
       id: 'foodie',
@@ -331,7 +377,7 @@ const HomePage: React.FC = () => {
       maxProgress: 8,
       icon: '🍽️',
       reward: 'VIP-Restaurantführung',
-      category: 'dining'
+      category: 'dining' as const
     }
   ], []);
 
@@ -403,7 +449,7 @@ const HomePage: React.FC = () => {
     }
   ], []);
 
-  // Callbacks
+  // Stable callbacks
   const handlePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
   }, []);
@@ -426,8 +472,8 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
-  // Components
-  const StatusBar: React.FC = () => (
+  // Stable components
+  const StatusBar: React.FC = React.memo(() => (
     <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white text-sm">
       <div className="flex items-center gap-2">
         <span className="font-medium">
@@ -449,8 +495,9 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+  ));
 
+  // Optimized Weather Widget
   const WeatherWidget: React.FC = React.memo(() => {
     const { weather, loading, error } = useWeatherData();
     
@@ -465,7 +512,7 @@ const HomePage: React.FC = () => {
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold">
-              {loading ? '...' : `${weather.temperature}°`}
+              {weather.temperature}°
             </div>
             <div className="text-blue-100 text-sm">{weather.condition}</div>
           </div>
@@ -501,7 +548,7 @@ const HomePage: React.FC = () => {
     subtitle: string;
     badge?: number;
     color: string;
-  }> = ({ href, icon, title, subtitle, badge, color }) => (
+  }> = React.memo(({ href, icon, title, subtitle, badge, color }) => (
     <Link href={href}>
       <div className={`relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group ${color}`}>
         <div className="p-6 h-32 flex flex-col justify-between relative">
@@ -528,140 +575,131 @@ const HomePage: React.FC = () => {
           </div>
         </div>
         
-        {badge && (
+        {badge && badge > 0 && (
           <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg animate-pulse">
             {badge}
           </div>
         )}
       </div>
     </Link>
-  );
+  ));
 
-  const LiveInfoCard: React.FC = React.memo(() => {
-    const liveData = useLiveData();
-    
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-500" />
-          Live-Informationen
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-green-50 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Car className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">Parkplätze</span>
-            </div>
-            <div className="text-xl font-bold text-green-600">
-              {liveData.parkingSpaces.toLocaleString('de-DE')}
-            </div>
-            <div className="text-xs text-green-600">verfügbar</div>
+  const LiveInfoCard: React.FC = React.memo(() => (
+    <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-200">
+      <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5 text-blue-500" />
+        Live-Informationen
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-green-50 p-3 rounded-xl">
+          <div className="flex items-center gap-2 mb-1">
+            <Car className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-medium text-green-700">Parkplätze</span>
           </div>
-          
-          <div className="bg-blue-50 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Navigation className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">ÖPNV</span>
-            </div>
-            <div className="text-xl font-bold text-blue-600">
-              +{liveData.busDelays.toLocaleString('de-DE')} Min
-            </div>
-            <div className="text-xs text-blue-600">Verspätung</div>
+          <div className="text-xl font-bold text-green-600">
+            {liveData.parkingSpaces}
           </div>
-          
-          <div className="bg-orange-50 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <User className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">Stadt</span>
-            </div>
-            <div className="text-xl font-bold text-orange-600 capitalize">
-              {liveData.cityBusyness === 'low' ? 'Ruhig' : 
-               liveData.cityBusyness === 'medium' ? 'Mittel' : 'Voll'}
-            </div>
-            <div className="text-xs text-orange-600">Auslastung</div>
-          </div>
-          
-          <div className="bg-purple-50 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700">Events</span>
-            </div>
-            <div className="text-xl font-bold text-purple-600">
-              {liveData.eventsToday.toLocaleString('de-DE')}
-            </div>
-            <div className="text-xs text-purple-600">heute</div>
-          </div>
-        </div>
-      </div>
-    );
-  });
-
-  const StatsCard: React.FC = React.memo(() => {
-    const stats = useUserStats();
-    
-    return (
-      <div className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg">
-        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-          <Award className="w-6 h-6" />
-          Ihre Erfolge
-        </h3>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold">
-              {stats.points.toLocaleString('de-DE')}
-            </div>
-            <div className="text-xs text-yellow-100">Punkte</div>
-            <div className="text-xs text-yellow-200 mt-1">
-              +{stats.weeklyTrend.points.toLocaleString('de-DE')} diese Woche
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">
-              {stats.visits.toLocaleString('de-DE')}
-            </div>
-            <div className="text-xs text-yellow-100">Besuche</div>
-            <div className="text-xs text-yellow-200 mt-1">
-              +{stats.weeklyTrend.visits.toLocaleString('de-DE')} diese Woche
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold">
-              {stats.savings.toLocaleString('de-DE')}€
-            </div>
-            <div className="text-xs text-yellow-100">Gespart</div>
-            <div className="text-xs text-yellow-200 mt-1">
-              +{stats.weeklyTrend.savings.toLocaleString('de-DE')}€ diese Woche
-            </div>
-          </div>
+          <div className="text-xs text-green-600">verfügbar</div>
         </div>
         
-        <div className="mt-4 pt-4 border-t border-yellow-300/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-yellow-300/30 rounded-full flex items-center justify-center">
-                <Crown className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="font-bold">Level {stats.level}</div>
-                <div className="text-xs text-yellow-200">City Explorer</div>
-              </div>
+        <div className="bg-blue-50 p-3 rounded-xl">
+          <div className="flex items-center gap-2 mb-1">
+            <Navigation className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-700">ÖPNV</span>
+          </div>
+          <div className="text-xl font-bold text-blue-600">
+            +{liveData.busDelays.toFixed(1)} Min
+          </div>
+          <div className="text-xs text-blue-600">Verspätung</div>
+        </div>
+        
+        <div className="bg-orange-50 p-3 rounded-xl">
+          <div className="flex items-center gap-2 mb-1">
+            <User className="w-4 h-4 text-orange-600" />
+            <span className="text-sm font-medium text-orange-700">Stadt</span>
+          </div>
+          <div className="text-xl font-bold text-orange-600 capitalize">
+            {getBusynessText(liveData.cityBusyness)}
+          </div>
+          <div className="text-xs text-orange-600">Auslastung</div>
+        </div>
+        
+        <div className="bg-purple-50 p-3 rounded-xl">
+          <div className="flex items-center gap-2 mb-1">
+            <Calendar className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-700">Events</span>
+          </div>
+          <div className="text-xl font-bold text-purple-600">
+            {liveData.eventsToday}
+          </div>
+          <div className="text-xs text-purple-600">heute</div>
+        </div>
+      </div>
+    </div>
+  ));
+
+  const StatsCard: React.FC = React.memo(() => (
+    <div className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg">
+      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+        <Award className="w-6 h-6" />
+        Ihre Erfolge
+      </h3>
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <div className="text-2xl font-bold">
+            {userStats.points.toLocaleString('de-DE')}
+          </div>
+          <div className="text-xs text-yellow-100">Punkte</div>
+          <div className="text-xs text-yellow-200 mt-1">
+            +{userStats.weeklyTrend.points.toLocaleString('de-DE')} diese Woche
+          </div>
+        </div>
+        <div>
+          <div className="text-2xl font-bold">
+            {userStats.visits.toLocaleString('de-DE')}
+          </div>
+          <div className="text-xs text-yellow-100">Besuche</div>
+          <div className="text-xs text-yellow-200 mt-1">
+            +{userStats.weeklyTrend.visits.toLocaleString('de-DE')} diese Woche
+          </div>
+        </div>
+        <div>
+          <div className="text-2xl font-bold">
+            {userStats.savings.toLocaleString('de-DE')}€
+          </div>
+          <div className="text-xs text-yellow-100">Gespart</div>
+          <div className="text-xs text-yellow-200 mt-1">
+            +{userStats.weeklyTrend.savings.toLocaleString('de-DE')}€ diese Woche
+          </div>
+        </div>
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-yellow-300/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-yellow-300/30 rounded-full flex items-center justify-center">
+              <Crown className="w-4 h-4" />
             </div>
-            <div className="text-right">
-              <div className="text-xs text-yellow-200">Nächstes Level</div>
-              <div className="w-20 h-2 bg-yellow-300/30 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-white transition-all duration-1000"
-                  style={{ width: `${((stats.points % 500) / 500) * 100}%` }}
-                />
-              </div>
+            <div>
+              <div className="font-bold">Level {userStats.level}</div>
+              <div className="text-xs text-yellow-200">City Explorer</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-yellow-200">Nächstes Level</div>
+            <div className="w-20 h-2 bg-yellow-300/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white transition-all duration-1000"
+                style={{ width: `${((userStats.points % 500) / 500) * 100}%` }}
+              />
             </div>
           </div>
         </div>
       </div>
-    );
-  });
+    </div>
+  ));
 
-  const EventCard: React.FC<{ event: FeaturedEvent }> = ({ event }) => (
+  const EventCard: React.FC<{ event: FeaturedEvent }> = React.memo(({ event }) => (
     <Link href={`/events/${event.id}`}>
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group">
         <div className="relative h-40">
@@ -712,9 +750,9 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     </Link>
-  );
+  ));
 
-  const NearbyPlaceCard: React.FC<{ place: NearbyPlace }> = ({ place }) => (
+  const NearbyPlaceCard: React.FC<{ place: NearbyPlace }> = React.memo(({ place }) => (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative h-24">
         <Image
@@ -742,7 +780,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+  ));
 
   return (
     <>

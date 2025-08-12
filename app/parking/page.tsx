@@ -503,6 +503,27 @@ const ParkingPage = () => {
 
   const getSpotIcon = (type: string) => type === 'garage' ? '🏢' : '🛣️';
 
+  // Helper function für Google Maps Navigation
+  const openGoogleMapsNavigation = (coordinates: { lat: number; lng: number }, name: string) => {
+    const { lat, lng } = coordinates;
+    const destination = encodeURIComponent(`${name}, Braunschweig`);
+    
+    // Erstelle Google Maps URL für Navigation
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${destination}&travelmode=driving`;
+    
+    // Fallback URL wenn der obere nicht funktioniert
+    const fallbackUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    
+    try {
+      // Öffne Google Maps in neuem Tab/Fenster
+      window.open(googleMapsUrl, '_blank');
+    } catch (error) {
+      console.error('Fehler beim Öffnen von Google Maps:', error);
+      // Fallback: Öffne einfache Maps URL
+      window.open(fallbackUrl, '_blank');
+    }
+  };
+
   // Components - Navigation-Style
   const ParkingSpotCard = ({ spot }: { spot: ParkingSpot }) => (
     <div 
@@ -585,7 +606,7 @@ const ParkingPage = () => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            alert(`Navigation zu ${spot.name} gestartet!`);
+            openGoogleMapsNavigation(spot.coordinates, spot.name);
           }}
           className="flex-1 bg-blue-500 text-white py-2 px-3 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-1"
         >
@@ -732,7 +753,7 @@ const ParkingPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => alert(`Navigation zu ${selectedSpot.name} gestartet!`)}
+                onClick={() => openGoogleMapsNavigation(selectedSpot.coordinates, selectedSpot.name)}
                 className="bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
               >
                 <Navigation className="w-5 h-5" />
