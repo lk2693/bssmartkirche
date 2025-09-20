@@ -461,20 +461,6 @@ const ShoppingPage: React.FC = () => {
   };
 
   // Components
-  const StatusBar: React.FC = () => (
-    <div className="flex justify-between items-center px-4 py-3 bg-gray-900 text-white text-sm">
-      <span className="font-medium">BS.Smart Shopping</span>
-      <div className="flex items-center gap-2">
-        <span>14:32</span>
-        <div className="flex items-center gap-1">
-          <div className="w-1 h-3 bg-green-400 rounded"></div>
-          <div className="w-1 h-3 bg-green-400 rounded"></div>
-          <div className="w-1 h-3 bg-green-400 rounded"></div>
-          <div className="w-1 h-3 bg-gray-600 rounded"></div>
-        </div>
-      </div>
-    </div>
-  );
 
   const SearchBar: React.FC = () => (
     <div className="px-4 py-3 bg-white border-b border-gray-200">
@@ -1262,8 +1248,6 @@ const ShoppingPage: React.FC = () => {
 
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen">
-          <StatusBar />
-          
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4">
             <div className="flex items-center justify-between mb-3">

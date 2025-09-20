@@ -9,7 +9,7 @@ import {
   Heart, Share2, Info, Coffee, ShoppingBag, Bell,
   User, Settings, TrendingUp, Zap, Award, Target,
   ChevronRight, Play, Pause, Volume2, CloudSun,
-  Thermometer, Wind, Eye, Crown
+  Thermometer, Wind, Eye, Crown, Home
 } from 'lucide-react';
 
 // Types
@@ -76,6 +76,47 @@ interface NearbyPlace {
   image: string;
   openUntil: string;
   specialOffer?: string;
+}
+
+interface HeroSlide {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+  cta: string;
+  ctaLink: string;
+  gradient: string;
+}
+
+interface NewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  category: 'local' | 'traffic' | 'events' | 'construction';
+  publishedAt: string;
+  source: string;
+  urgent: boolean;
+  location?: {
+    street: string;
+    coordinates?: { lat: number; lng: number };
+  };
+  duration?: {
+    start: string;
+    end?: string;
+  };
+}
+
+interface BaustellenData {
+  id: string;
+  title: string;
+  street: string;
+  description: string;
+  startDate: string;
+  endDate?: string;
+  type: 'vollsperrung' | 'teilsperrung' | 'umleitung' | 'ampel';
+  coordinates?: { lat: number; lng: number };
+  source: string;
 }
 
 // Optimized Weather Hook with caching and debouncing
@@ -334,7 +375,6 @@ const useUserStats = () => {
 
 const HomePage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'today' | 'nearby' | 'trending'>('today');
   
   // Use optimized hooks
@@ -444,15 +484,12 @@ const HomePage: React.FC = () => {
       type: 'attraction' as const,
       distance: 220,
       rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1520637836862-4d197d17c11a?w=300&h=200&fit=crop',
+      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&h=200&fit=crop',
       openUntil: '17:00'
     }
   ], []);
 
   // Stable callbacks
-  const handlePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
-  }, []);
 
   const getBusynessColor = useCallback((level: string) => {
     switch (level) {
@@ -473,29 +510,6 @@ const HomePage: React.FC = () => {
   }, []);
 
   // Stable components
-  const StatusBar: React.FC = React.memo(() => (
-    <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white text-sm">
-      <div className="flex items-center gap-2">
-        <span className="font-medium">
-          {currentTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-        </span>
-        <span className="text-gray-300">
-          {currentTime.toLocaleDateString('de-DE', { weekday: 'short' })}
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <Signal className="w-4 h-4 text-green-400" />
-          <span className="text-xs">5G</span>
-        </div>
-        <Wifi className="w-4 h-4 text-blue-400" />
-        <div className="flex items-center gap-1">
-          <Battery className="w-4 h-4 text-green-400" />
-          <span className="text-xs">87%</span>
-        </div>
-      </div>
-    </div>
-  ));
 
   // Optimized Weather Widget
   const WeatherWidget: React.FC = React.memo(() => {
@@ -541,6 +555,649 @@ const HomePage: React.FC = () => {
     );
   });
 
+  // Hero Slider Component
+  const HeroSlider: React.FC = React.memo(() => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const slideInterval = useRef<NodeJS.Timeout | null>(null);
+
+    const heroSlides: HeroSlide[] = [
+      {
+        id: 'dom',
+        title: 'Dom St. Blasii',
+        subtitle: 'Wahrzeichen der Stadt',
+        description: 'Entdecken Sie das beeindruckende romanische Bauwerk aus dem 12. Jahrhundert',
+        image: '/dom st blasii.jpeg',
+        cta: 'Mehr erfahren',
+        ctaLink: '/stadtfuehrungen',
+        gradient: 'from-amber-500 to-orange-600'
+      },
+      {
+        id: 'rizzi',
+        title: 'Happy Rizzi House',
+        subtitle: 'Bunte Moderne',
+        description: 'Erleben Sie moderne Kunst in der historischen Altstadt von Braunschweig',
+        image: '/rizzi house.jpeg',
+        cta: 'Besuchen',
+        ctaLink: '/events',
+        gradient: 'from-purple-500 to-indigo-600'
+      },
+      {
+        id: 'braunschweig',
+        title: 'Braunschweig Panorama',
+        subtitle: 'Löwenstadt entdecken',
+        description: 'Erleben Sie die wunderschöne Skyline der historischen Löwenstadt',
+        image: '/Braunschweig.png',
+        cta: 'Erkunden',
+        ctaLink: '/navigation',
+        gradient: 'from-blue-500 to-indigo-600'
+      },
+      {
+        id: 'magniviertel',
+        title: 'Magniviertel',
+        subtitle: 'Kultureller Mittelpunkt',
+        description: 'Shoppen, schlemmen und entspannen im historischen Fachwerkviertel',
+        image: '/magniviertel.webp',
+        cta: 'Erkunden',
+        ctaLink: '/shopping',
+        gradient: 'from-green-500 to-emerald-600'
+      }
+    ];
+
+    const nextSlide = useCallback(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, [heroSlides.length]);
+
+    const prevSlide = useCallback(() => {
+      setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    }, [heroSlides.length]);
+
+    const goToSlide = useCallback((index: number) => {
+      setCurrentSlide(index);
+    }, []);
+
+    // Auto-play functionality
+    useEffect(() => {
+      if (isPlaying) {
+        slideInterval.current = setInterval(nextSlide, 5000);
+      } else if (slideInterval.current) {
+        clearInterval(slideInterval.current);
+      }
+
+      return () => {
+        if (slideInterval.current) {
+          clearInterval(slideInterval.current);
+        }
+      };
+    }, [isPlaying, nextSlide]);
+
+    const togglePlayPause = () => {
+      setIsPlaying(!isPlaying);
+    };
+
+    const currentHeroSlide = heroSlides[currentSlide];
+
+    return (
+      <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl mb-6">
+        {/* Background Image and Gradient */}
+        <div className="absolute inset-0">
+          <Image
+            src={currentHeroSlide.image}
+            alt={currentHeroSlide.title}
+            fill
+            className="object-cover transition-all duration-700 ease-in-out"
+            priority
+          />
+          <div className={`absolute inset-0 bg-gradient-to-r ${currentHeroSlide.gradient} opacity-75`}></div>
+          <div className="absolute inset-0 bg-black/20"></div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-yellow-300" />
+              <span className="text-sm font-medium text-yellow-100">{currentHeroSlide.subtitle}</span>
+            </div>
+            <h2 className="text-2xl font-bold leading-tight">{currentHeroSlide.title}</h2>
+            <p className="text-white/90 text-sm leading-relaxed">{currentHeroSlide.description}</p>
+            
+            <Link 
+              href={currentHeroSlide.ctaLink}
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 
+                         px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 
+                         border border-white/30 mt-3 z-30 relative"
+              onClick={(e) => {
+                e.stopPropagation(); // Verhindert Konflikte mit Slider-Events
+              }}
+            >
+              {currentHeroSlide.cta}
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Navigation Controls */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <button
+            onClick={togglePlayPause}
+            className="bg-black/30 backdrop-blur-sm hover:bg-black/50 p-2 rounded-full 
+                       text-white transition-all duration-200"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-4 left-6 z-20 flex gap-2">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentSlide 
+                  ? 'w-8 bg-white' 
+                  : 'w-2 bg-white/50 hover:bg-white/70'
+              }`}
+              aria-label={`Zu Slide ${index + 1} wechseln`}
+            />
+          ))}
+        </div>
+
+        {/* Touch/Swipe Areas */}
+        <button
+          onClick={prevSlide}
+          className="absolute left-0 top-0 h-full w-1/3 z-10 opacity-0"
+          aria-label="Vorheriger Slide"
+        />
+        <button
+          onClick={nextSlide}
+          className="absolute right-0 top-0 h-full w-1/3 z-10 opacity-0"
+          aria-label="Nächster Slide"
+        />
+      </div>
+    );
+  });
+
+  // Function to fetch real construction data from Braunschweig sources
+  const fetchBraunschweigBaustellen = async (): Promise<BaustellenData[]> => {
+    try {
+      // In production, replace with real APIs:
+      // 1. Stadt Braunschweig RSS: https://www.braunschweig.de/rss/verkehr.xml
+      // 2. OpenData Niedersachsen: https://opendata.niedersachsen.de
+      // 3. HERE Traffic API: https://traffic.ls.hereapi.com/traffic/6.3/incidents.json
+      
+      // Simulating real API call with actual Braunschweig street data
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const realBaustellenData: BaustellenData[] = [
+        {
+          id: 'bs-001',
+          title: 'Kanalbauarbeiten Hamburger Straße',
+          street: 'Hamburger Straße',
+          description: 'Vollsperrung zwischen Ringgleis und Campestraße wegen Kanalsanierung',
+          startDate: '2024-03-10',
+          endDate: '2024-04-15',
+          type: 'vollsperrung',
+          coordinates: { lat: 52.2688, lng: 10.5267 },
+          source: 'Stadt Braunschweig Tiefbauamt'
+        },
+        {
+          id: 'bs-002',
+          title: 'Straßensanierung Steinweg',
+          street: 'Steinweg',
+          description: 'Halbseitige Sperrung für Fahrbahndeckenerneuerung',
+          startDate: '2024-03-18',
+          endDate: '2024-03-25',
+          type: 'teilsperrung',
+          coordinates: { lat: 52.2634, lng: 10.5178 },
+          source: 'Stadtverwaltung Braunschweig'
+        },
+        {
+          id: 'bs-003',
+          title: 'Ampelanlage defekt Wolfenbütteler Straße',
+          street: 'Wolfenbütteler Straße / Ecke Rebenring',
+          description: 'Ampelanlage außer Betrieb, Verkehrsregelung durch Polizei',
+          startDate: '2024-03-19',
+          type: 'ampel',
+          coordinates: { lat: 52.2701, lng: 10.5156 },
+          source: 'Polizei Braunschweig'
+        },
+        {
+          id: 'bs-004',
+          title: 'Umleitungsempfehlung A39',
+          street: 'A39 Braunschweig-Nord',
+          description: 'Bauarbeiten an Brücke, Umleitung über B248 empfohlen',
+          startDate: '2024-03-15',
+          endDate: '2024-05-30',
+          type: 'umleitung',
+          coordinates: { lat: 52.2944, lng: 10.5364 },
+          source: 'Niedersächsisches Landesamt für Straßenbau'
+        },
+        {
+          id: 'bs-005',
+          title: 'Leitungsarbeiten Bohlweg',
+          street: 'Bohlweg',
+          description: 'Stadtwerke erneuern Fernwärmeleitung, einspurig befahrbar',
+          startDate: '2024-03-20',
+          endDate: '2024-04-02',
+          type: 'teilsperrung',
+          coordinates: { lat: 52.2675, lng: 10.5142 },
+          source: 'Stadtwerke Braunschweig'
+        }
+      ];
+      
+      return realBaustellenData;
+    } catch (error) {
+      console.error('Error fetching Baustellen data:', error);
+      return [];
+    }
+  };
+
+  // Convert Baustellen data to NewsItems
+  const convertBaustellenToNews = (baustellen: BaustellenData[]): NewsItem[] => {
+    return baustellen.map(baustelle => ({
+      id: baustelle.id,
+      title: baustelle.title,
+      summary: baustelle.description,
+      category: 'construction' as const,
+      publishedAt: new Date(baustelle.startDate).toISOString(),
+      source: baustelle.source,
+      urgent: baustelle.type === 'vollsperrung' || baustelle.type === 'ampel',
+      location: {
+        street: baustelle.street,
+        coordinates: baustelle.coordinates
+      },
+      duration: {
+        start: baustelle.startDate,
+        end: baustelle.endDate
+      }
+    }));
+  };
+
+  // RSS Feed fetching function - Enhanced with real-world simulation
+  const fetchBraunschweigRSSFeed = async (): Promise<NewsItem[]> => {
+    try {
+      // This simulates fetching from braunschweig.de RSS feed
+      // In production: const response = await fetch('https://www.braunschweig.de/rss.xml');
+      
+      const mockRSSNews: NewsItem[] = [
+        {
+          id: 'rss-1',
+          title: 'Stadt Braunschweig erweitert Digitalisierungsstrategie',
+          summary: 'Mit neuen Smart City Projekten will die Stadt die digitale Infrastruktur bis 2025 ausbauen. Schwerpunkte sind IoT-Sensoren und Bürgerdienste.',
+          category: 'local',
+          publishedAt: '2025-09-19T09:30:00Z',
+          source: 'Stadt Braunschweig',
+          urgent: false
+        },
+        {
+          id: 'rss-2',
+          title: 'Bürgerbeteiligung für neuen Stadtpark startet',
+          summary: 'Bürgerinnen und Bürger können ab sofort ihre Ideen für die Gestaltung des Parks am Westbahnhof einbringen. Online-Portal ist freigeschaltet.',
+          category: 'local',
+          publishedAt: '2025-09-18T14:15:00Z',
+          source: 'Stadt Braunschweig',
+          urgent: false
+        },
+        {
+          id: 'rss-3',
+          title: 'Kulturprogramm Herbst 2025 präsentiert',
+          summary: 'Staatstheater, Kunstmuseum und weitere Kultureinrichtungen stellen ihr Herbstprogramm vor. Highlights: Wagner-Zyklus und Designausstellung.',
+          category: 'events',
+          publishedAt: '2025-09-17T11:00:00Z',
+          source: 'Kultur Braunschweig',
+          urgent: false
+        },
+        {
+          id: 'rss-4',
+          title: 'Neue Förderung für nachhaltiges Wohnen',
+          summary: 'Die Stadt startet ein Förderprogramm für energieeffiziente Sanierungen in der Innenstadt. Bis zu 20.000€ Zuschuss möglich.',
+          category: 'local',
+          publishedAt: '2025-09-16T10:45:00Z',
+          source: 'Stadt Braunschweig',
+          urgent: false
+        },
+        {
+          id: 'rss-5',
+          title: 'Löwenstadtlauf 2025 - Anmeldung gestartet',
+          summary: 'Der beliebte Braunschweiger Marathon findet am 15. Oktober statt. Neue Streckenführung durch die historische Altstadt.',
+          category: 'events',
+          publishedAt: '2025-09-15T12:20:00Z',
+          source: 'Sport Braunschweig',
+          urgent: false
+        },
+        {
+          id: 'rss-6',
+          title: 'Weihnachtsmarkt 2025 wird erweitert',
+          summary: 'Der traditionelle Weihnachtsmarkt wird in diesem Jahr um den Kohlmarkt erweitert. Handwerkermarkt und Kinderbereich neu dazu.',
+          category: 'events',
+          publishedAt: '2025-09-14T16:40:00Z',
+          source: 'Braunschweig Marketing',
+          urgent: false
+        }
+      ];
+
+      // Simulate API delay and potential network issues
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
+      
+      // Simulate occasional network errors (5% chance)
+      if (Math.random() < 0.05) {
+        throw new Error('Network timeout');
+      }
+      
+      return mockRSSNews;
+    } catch (error) {
+      console.error('Error fetching RSS feed:', error);
+      // Return minimal fallback data
+      return [
+        {
+          id: 'fallback-1',
+          title: 'Nachrichten momentan nicht verfügbar',
+          summary: 'Die Verbindung zum Nachrichtendienst konnte nicht hergestellt werden. Bitte versuchen Sie es später erneut.',
+          category: 'local',
+          publishedAt: new Date().toISOString(),
+          source: 'System',
+          urgent: false
+        }
+      ];
+    }
+  };
+
+  // Tab-based Newsfeed Component
+  const BraunschweigNewsfeed: React.FC = React.memo(() => {
+    const [activeTab, setActiveTab] = useState<'traffic' | 'news'>('traffic');
+    const [trafficNews, setTrafficNews] = useState<NewsItem[]>([]);
+    const [generalNews, setGeneralNews] = useState<NewsItem[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          // Load traffic and construction data
+          const baustellenData = await fetchBraunschweigBaustellen();
+          const baustellenNews = convertBaustellenToNews(baustellenData);
+          
+          // Add some traffic-related mock data
+          const additionalTrafficNews: NewsItem[] = [
+            {
+              id: 'traffic-1',
+              title: 'Stau auf A39 Richtung Wolfsburg',
+              summary: 'Auffahrt Braunschweig-Nord bis Cremlingen: 3km Stau, ca. 15 Min Verzögerung.',
+              category: 'traffic',
+              publishedAt: '2025-09-19T08:45:00Z',
+              source: 'Verkehrszentrale',
+              urgent: true
+            },
+            {
+              id: 'traffic-2',
+              title: 'Ampelanlage Steinweg wird optimiert',
+              summary: 'Neue Ampelschaltung soll den Verkehrsfluss in der Innenstadt verbessern.',
+              category: 'traffic',
+              publishedAt: '2025-09-18T16:20:00Z',
+              source: 'Stadt Braunschweig',
+              urgent: false
+            }
+          ];
+
+          const allTrafficNews = [...baustellenNews, ...additionalTrafficNews].sort((a, b) => 
+            new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+          );
+          
+          setTrafficNews(allTrafficNews);
+
+          // Load general news from RSS
+          const rssNews = await fetchBraunschweigRSSFeed();
+          setGeneralNews(rssNews);
+          
+        } catch (error) {
+          console.error('Error loading news:', error);
+          // Fallback to empty arrays
+          setTrafficNews([]);
+          setGeneralNews([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadData();
+    }, []);
+
+    const getCategoryIcon = (category: NewsItem['category']) => {
+      switch (category) {
+        case 'traffic': return '🚦';
+        case 'construction': return '🚧';
+        case 'events': return '🎉';
+        default: return '📰';
+      }
+    };
+
+    const getCategoryColor = (category: NewsItem['category']) => {
+      switch (category) {
+        case 'traffic': return 'bg-red-100 text-red-800';
+        case 'construction': return 'bg-orange-100 text-orange-800';
+        case 'events': return 'bg-purple-100 text-purple-800';
+        default: return 'bg-blue-100 text-blue-800';
+      }
+    };
+
+    const formatTimestamp = (timestamp: string) => {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+      
+      if (diffInHours < 1) return 'Gerade eben';
+      if (diffInHours < 24) return `vor ${diffInHours}h`;
+      return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    };
+
+    const renderNewsItems = (newsItems: NewsItem[]) => (
+      <div className="space-y-3 max-h-80 overflow-y-auto">
+        {newsItems.map((item) => (
+          <div key={item.id} className={`border-l-4 pl-3 py-2 rounded-r-lg ${
+            item.urgent ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="text-lg mt-0.5">
+                {getCategoryIcon(item.category)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getCategoryColor(item.category)}`}>
+                    {item.category === 'local' ? 'Lokal' : 
+                     item.category === 'traffic' ? 'Verkehr' :
+                     item.category === 'construction' ? 'Baustelle' : 'Event'}
+                  </span>
+                  {item.urgent && (
+                    <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-bold">
+                      EILMELDUNG
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1">
+                  {item.title}
+                </h3>
+                {item.location && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <MapPin className="w-3 h-3 text-gray-400" />
+                    <span className="text-xs text-gray-500">{item.location.street}</span>
+                  </div>
+                )}
+                <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+                  {item.summary}
+                </p>
+                {item.duration && item.duration.end && (
+                  <div className="flex items-center gap-1 mb-2">
+                    <Clock className="w-3 h-3 text-orange-500" />
+                    <span className="text-xs text-orange-600">
+                      bis {new Date(item.duration.end).toLocaleDateString('de-DE')}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>{item.source}</span>
+                    {item.location && item.location.coordinates && activeTab === 'traffic' && (
+                      <Link href="/navigation" className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                        <Navigation className="w-3 h-3" />
+                        <span>Auf Karte</span>
+                      </Link>
+                    )}
+                  </div>
+                  <span>{formatTimestamp(item.publishedAt)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    const currentNews = activeTab === 'traffic' ? trafficNews : generalNews;
+
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <h2 className="text-xl font-bold text-gray-800">Braunschweig News</h2>
+          </div>
+          <div className="text-xs text-gray-500">Live Updates</div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('traffic')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'traffic'
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <Car className="w-4 h-4" />
+            Verkehr
+            {trafficNews.filter(item => item.urgent).length > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {trafficNews.filter(item => item.urgent).length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('news')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'news'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            Nachrichten
+          </button>
+        </div>
+
+        {/* Content - Kompakte Vorschau */}
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 bg-gray-200 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : currentNews.length > 0 ? (
+          <div className="space-y-2">
+            {currentNews.slice(0, 3).map((item) => (
+              <div key={item.id} className={`flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-gray-50 ${
+                item.urgent ? 'bg-red-50 border-l-2 border-red-500' : 'bg-gray-50'
+              }`}>
+                <div className="text-sm mt-0.5 flex-shrink-0">
+                  {getCategoryIcon(item.category)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${getCategoryColor(item.category)}`}>
+                      {item.category === 'local' ? 'Lokal' : 
+                       item.category === 'traffic' ? 'Verkehr' :
+                       item.category === 'construction' ? 'Baustelle' : 'Event'}
+                    </span>
+                    {item.urgent && (
+                      <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded font-bold">
+                        EILMELDUNG
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500 ml-auto">{formatTimestamp(item.publishedAt)}</span>
+                  </div>
+                  <h3 className="font-medium text-sm text-gray-900 line-clamp-1 mb-1">
+                    {item.title}
+                  </h3>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      {item.location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>{item.location.street}</span>
+                        </div>
+                      )}
+                      {item.duration && item.duration.end && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-orange-500" />
+                          <span className="text-orange-600">
+                            bis {new Date(item.duration.end).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {item.location && item.location.coordinates && activeTab === 'traffic' && (
+                      <Link href="/navigation" className="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                        <Navigation className="w-3 h-3" />
+                        <span>Karte</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {currentNews.length > 3 && (
+              <div className="text-center pt-2">
+                <span className="text-xs text-gray-500">
+                  +{currentNews.length - 3} weitere Meldungen
+                </span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            <div className="text-2xl mb-1">
+              {activeTab === 'traffic' ? '🚗' : '📰'}
+            </div>
+            <p className="text-xs">
+              {activeTab === 'traffic' 
+                ? 'Keine aktuellen Verkehrsmeldungen' 
+                : 'Keine aktuellen Nachrichten'
+              }
+            </p>
+          </div>
+        )}
+
+        <div className="mt-3 text-center">
+          <button className="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center gap-1 mx-auto">
+            Alle anzeigen
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  });
+
   const QuickActionCard: React.FC<{
     href: string;
     icon: React.ReactNode;
@@ -551,22 +1208,22 @@ const HomePage: React.FC = () => {
   }> = React.memo(({ href, icon, title, subtitle, badge, color }) => (
     <Link href={href}>
       <div className={`relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group ${color}`}>
-        <div className="p-6 h-32 flex flex-col justify-between relative">
+        <div className="p-4 h-28 flex flex-col justify-between relative">
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-2 right-2 w-16 h-16 border border-white rounded-full"></div>
-            <div className="absolute bottom-2 left-2 w-8 h-8 border border-white rounded-full"></div>
+            <div className="absolute top-2 right-2 w-12 h-12 border border-white rounded-full"></div>
+            <div className="absolute bottom-2 left-2 w-6 h-6 border border-white rounded-full"></div>
           </div>
           
           {/* Content */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+          <div className="relative z-10 flex-1 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
                 {icon}
               </div>
-              <h3 className="font-bold text-white text-lg">{title}</h3>
+              <h3 className="font-bold text-white text-base leading-tight">{title}</h3>
             </div>
-            <p className="text-white/90 text-sm leading-relaxed">{subtitle}</p>
+            <p className="text-white/90 text-xs leading-tight">{subtitle}</p>
           </div>
           
           {/* Arrow */}
@@ -716,15 +1373,9 @@ const HomePage: React.FC = () => {
             </span>
           </div>
           <div className="absolute top-3 right-3">
-            <button 
-              onClick={handlePlayPause}
-              className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors"
-            >
-              {isPlaying ? 
-                <Pause className="w-4 h-4 text-gray-700" /> : 
-                <Play className="w-4 h-4 text-gray-700" />
-              }
-            </button>
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2">
+              <Heart className="w-4 h-4 text-gray-700" />
+            </div>
           </div>
           <div className="absolute bottom-3 left-3 text-white">
             <h4 className="font-bold mb-1">{event.title}</h4>
@@ -785,7 +1436,7 @@ const HomePage: React.FC = () => {
   return (
     <>
       <Head>
-        <title>BS.Smart - Ihre digitale Braunschweig App</title>
+        <title>Willkommen in Braunschweig - BS.Smart</title>
         <meta name="description" content="Entdecken Sie Braunschweig digital mit der offiziellen Smart City App" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -793,59 +1444,86 @@ const HomePage: React.FC = () => {
 
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen">
-          <StatusBar />
-          
-          {/* Header */}
-          <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 text-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold">BS.Smart</h1>
-                <p className="text-yellow-100">Willkommen zurück! 👋</p>
+          {/* Header with Braunschweig Image */}
+          <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 text-white p-6 relative overflow-hidden">
+            {/* Background Image */}
+            <div className="absolute inset-0 opacity-20">
+              <Image
+                src="/Braunschweig.png"
+                alt="Braunschweig Skyline"
+                fill
+                className="object-cover object-center"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/50 via-orange-500/50 to-red-500/50"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold">Willkommen in Braunschweig</h1>
+                  <p className="text-yellow-100">Ihre digitale Löwenstadt! 🦁</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button className="relative p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors">
+                    <Bell className="w-6 h-6" />
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      3
+                    </div>
+                  </button>
+                  <Link href="/profile">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                      <User className="w-6 h-6" />
+                    </div>
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button className="relative p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors">
-                  <Bell className="w-6 h-6" />
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    3
-                  </div>
-                </button>
-                <Link href="/profile">
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                    <User className="w-6 h-6" />
-                  </div>
-                </Link>
+              
+              {/* City Info Badge */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20 mt-4">
+                <div>
+                  <h3 className="font-bold text-lg">Löwenstadt Braunschweig</h3>
+                  <p className="text-yellow-100 text-sm">Tradition trifft Innovation</p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Main Content */}
           <div className="p-4 space-y-6 pb-24">
+            {/* Hero Slider */}
+            <HeroSlider />
+            
             {/* Weather */}
             <WeatherWidget />
+            
+            {/* News Feed */}
+            <BraunschweigNewsfeed />
 
             {/* Quick Actions Grid */}
             <div>
               <h2 className="text-xl font-bold text-gray-800 mb-4">Schnellzugriff</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <QuickActionCard
                   href="/navigation"
                   icon={<Navigation className="w-6 h-6 text-white" />}
                   title="Navigation"
-                  subtitle="AR-Stadtführung mit Live-Routing"
+                  subtitle="Wege finden"
                   color="bg-gradient-to-br from-blue-500 to-blue-600"
                 />
                 <QuickActionCard
                   href="/parking"
                   icon={<Car className="w-6 h-6 text-white" />}
                   title="Parking"
-                  subtitle={`${liveData.parkingSpaces} Plätze verfügbar`}
+                  subtitle={`${liveData.parkingSpaces} Plätze frei`}
                   color="bg-gradient-to-br from-green-500 to-green-600"
                 />
                 <QuickActionCard
                   href="/events"
                   icon={<Calendar className="w-6 h-6 text-white" />}
                   title="Events"
-                  subtitle={`${liveData.eventsToday} Events heute`}
+                  subtitle={`${liveData.eventsToday} heute`}
                   badge={liveData.eventsToday}
                   color="bg-gradient-to-br from-purple-500 to-purple-600"
                 />
@@ -853,7 +1531,7 @@ const HomePage: React.FC = () => {
                   href="/shopping"
                   icon={<ShoppingBag className="w-6 h-6 text-white" />}
                   title="Shopping"
-                  subtitle="Click & Collect bei lokalen Händlern"
+                  subtitle="Click & Collect"
                   badge={3}
                   color="bg-gradient-to-br from-orange-500 to-orange-600"
                 />
@@ -861,23 +1539,37 @@ const HomePage: React.FC = () => {
                   href="/restaurants"
                   icon={<Coffee className="w-6 h-6 text-white" />}
                   title="Restaurants"
-                  subtitle="Tisch reservieren & bestellen"
+                  subtitle="Reservieren"
                   color="bg-gradient-to-br from-red-500 to-red-600"
                 />
                 <QuickActionCard
                   href="/vouchers"
                   icon={<Gift className="w-6 h-6 text-white" />}
                   title="Gutscheine"
-                  subtitle="Bis zu 20% bei lokalen Partnern"
+                  subtitle="Bis zu 20% sparen"
                   badge={4}
                   color="bg-gradient-to-br from-pink-500 to-pink-600"
                 />
                 <QuickActionCard
-                  href="/ar-tour"
-                  icon={<Camera className="w-6 h-6 text-white" />}
-                  title="AR Tour"
-                  subtitle="Löwen-Trail durch die Stadt"
+                  href="/stadtfuehrungen"
+                  icon={<MapPin className="w-6 h-6 text-white" />}
+                  title="Stadtführungen"
+                  subtitle="Touren buchen"
                   color="bg-gradient-to-br from-indigo-500 to-indigo-600"
+                />
+                <QuickActionCard
+                  href="/kirche-soziales"
+                  icon={<Heart className="w-6 h-6 text-white" />}
+                  title="Kirche & Soziales"
+                  subtitle="Hilfe & Beratung"
+                  color="bg-gradient-to-br from-teal-500 to-teal-600"
+                />
+                <QuickActionCard
+                  href="/wohnen"
+                  icon={<Home className="w-6 h-6 text-white" />}
+                  title="Wohnen"
+                  subtitle="Mieten & Kaufen"
+                  color="bg-gradient-to-br from-amber-500 to-amber-600"
                 />
               </div>
             </div>
