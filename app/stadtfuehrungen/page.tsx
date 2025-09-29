@@ -38,7 +38,7 @@ const tours: Tour[] = [
     maxParticipants: 20,
     currentBookings: 12,
     highlights: ['Dom St. Blasii', 'Burg Dankwarderode', 'Löwenstatue', 'Altstadtmarkt'],
-    image: 'https://images.unsplash.com/photo-1595846352900-2b5e8db3d5cc?w=400&h=250&fit=crop',
+    image: '/klassik braunschweig.png',
     guide: {
       name: 'Dr. Maria Schneider',
       experience: '15 Jahre Stadtführung',

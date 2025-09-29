@@ -423,6 +423,17 @@ const HomePage: React.FC = () => {
 
   const featuredEvents = useMemo(() => [
     {
+      id: 'klassik-braunschweig',
+      title: 'Löwenstadt Klassik',
+      subtitle: 'Klassische Konzerte & Aufführungen',
+      time: '20:00',
+      location: 'Staatstheater Braunschweig',
+      image: '/klassik braunschweig.png',
+      category: 'Klassik',
+      attendees: 250,
+      price: '25€'
+    },
+    {
       id: 'jazz-schloss',
       title: 'Jazz unter Sternen',
       subtitle: 'Live im Schlosspark Richmond',

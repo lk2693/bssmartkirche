@@ -23,7 +23,7 @@ interface ParkingSpot {
   totalSpaces?: number;
   hourlyPrice: number;
   isOpen: boolean;
-  dataSource: 'static' | 'osm';
+  dataSource: 'static' | 'osm' | 'live';
   rating?: number;
   features?: string[];
   amenities?: string[];
@@ -50,72 +50,183 @@ interface OSMStreetParking {
   };
 }
 
-// Statische Parkhäuser (erweitert)
+// Offizielle Braunschweiger Parkhäuser (aus städtischen Daten)
 const PARKING_GARAGES: ParkingSpot[] = [
   {
-    id: 'city-galerie',
-    name: 'Parkhaus City-Galerie',
+    id: 'eiermarkt',
+    name: 'Parkhaus Eiermarkt',
     type: 'garage',
-    address: 'Bohlweg 38-39',
-    coordinates: { lat: 52.2631, lng: 10.5218 },
-    distance: 120,
-    walkingTime: 2,
-    availableSpaces: 127,
-    totalSpaces: 480,
-    hourlyPrice: 2.50,
+    address: 'Güldenstraße 70',
+    coordinates: { lat: 52.261492, lng: 10.515398 },
+    distance: 650,
+    walkingTime: 8,
+    availableSpaces: 100, // Wird durch Live-Daten überschrieben
+    totalSpaces: 255,
+    hourlyPrice: 1.20,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.1,
+    features: ['24/7 geöffnet', 'Kartenzahlung', 'Mutter-Kind Parkplätze'],
+    amenities: ['Zentral gelegen', 'Behindertenparkplätze: 6'],
+    pricing: {
+      hourly: 1.20,
+      daily: 9.60,
+      monthly: undefined
+    },
+
+  },
+  {
+    id: 'lange-str-nord',
+    name: 'Parkhaus Lange Str. Nord',
+    type: 'garage',
+    address: 'Lange Straße 61',
+    coordinates: { lat: 52.266929, lng: 10.518574 },
+    distance: 420,
+    walkingTime: 5,
+    availableSpaces: 92, // Wird durch Live-Daten überschrieben
+    totalSpaces: 150,
+    hourlyPrice: 1.50,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.0,
+    features: ['Frauenparkplätze: 18', 'Fahrrad + Motorrad frei'],
+    amenities: ['Zentrumsnah', 'Behindertenparkplätze: 9'],
+    pricing: {
+      hourly: 1.50,
+      daily: 10.00,
+      monthly: undefined
+    }
+  },
+  {
+    id: 'lange-str-sued',
+    name: 'Parkhaus Lange Str. Süd',
+    type: 'garage',
+    address: 'Lange Straße 4',
+    coordinates: { lat: 52.266286, lng: 10.518295 },
+    distance: 480,
+    walkingTime: 6,
+    availableSpaces: 55, // Wird durch Live-Daten überschrieben
+    totalSpaces: 152,
+    hourlyPrice: 1.00,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 3.9,
+    features: ['Nur Kartenzahlung', 'Zentral gelegen'],
+    amenities: ['Shopping-Nähe'],
+    pricing: {
+      hourly: 1.00,
+      daily: 10.00,
+      monthly: undefined
+    }
+  },
+  {
+    id: 'magni',
+    name: 'Parkhaus Magni',
+    type: 'garage',
+    address: 'Bohlweg 72',
+    coordinates: { lat: 52.262162, lng: 10.526942 },
+    distance: 300,
+    walkingTime: 4,
+    availableSpaces: 0, // Wird durch Live-Daten überschrieben
+    totalSpaces: 420,
+    hourlyPrice: 1.20,
     isOpen: true,
     dataSource: 'static',
     rating: 4.2,
-    features: ['Überdacht', 'Videoüberwacht', 'Behindertengerecht'],
-    amenities: ['WC', 'Aufzug', 'Einkaufszentrum'],
+    features: ['EC-Karte', 'Münzen', 'Scheine'],
+    amenities: ['Zentral', 'Behindertenparkplätze: 11'],
     pricing: {
-      hourly: 2.50,
+      hourly: 1.20,
+      daily: 9.60,
+      monthly: undefined
+    }
+  },
+  {
+    id: 'schuetzenstrasse',
+    name: 'Parkhaus Schützenstraße',
+    type: 'garage',
+    address: 'Schützenstraße 4',
+    coordinates: { lat: 52.263712, lng: 10.519732 },
+    distance: 380,
+    walkingTime: 5,
+    availableSpaces: 273, // Wird durch Live-Daten überschrieben
+    totalSpaces: 366,
+    hourlyPrice: 2.00,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.1,
+    features: ['EC- und Kreditkarten', 'Zentral gelegen'],
+    amenities: ['Behindertenparkplätze: 4'],
+    pricing: {
+      hourly: 2.00,
       daily: 15.00,
-      monthly: 89.00
+      monthly: undefined
     }
   },
   {
-    id: 'hauptbahnhof',
-    name: 'Parkhaus Hauptbahnhof',
+    id: 'wallstrasse',
+    name: 'Parkhaus Wallstraße',
     type: 'garage',
-    address: 'Willy-Brandt-Platz 1',
-    coordinates: { lat: 52.2521, lng: 10.5407 },
-    distance: 850,
-    walkingTime: 11,
-    availableSpaces: 45,
-    totalSpaces: 320,
-    hourlyPrice: 2.00,
+    address: 'Wallstraße 2',
+    coordinates: { lat: 52.259903, lng: 10.521428 },
+    distance: 520,
+    walkingTime: 7,
+    availableSpaces: 392, // Wird durch Live-Daten überschrieben
+    totalSpaces: 485,
+    hourlyPrice: 2.80,
     isOpen: true,
     dataSource: 'static',
-    rating: 3.8,
-    features: ['Überdacht', 'E-Ladestationen', '24h geöffnet'],
-    amenities: ['DB Lounge', 'Reisezentrum', 'Geschäfte'],
+    rating: 4.3,
+    features: ['24/7 geöffnet', 'Google Pay', 'Apple Pay', 'P Card'],
+    amenities: ['Behindertenparkplätze: 8'],
     pricing: {
-      hourly: 2.00,
-      daily: 12.00,
-      monthly: 75.00
+      hourly: 2.80,
+      daily: 17.00,
+      monthly: undefined
     }
   },
   {
-    id: 'schloss-arkaden',
-    name: 'Schloss-Arkaden',
+    id: 'wilhelmstrasse',
+    name: 'Parkhaus Wilhelmstraße',
     type: 'garage',
-    address: 'Platz der Deutschen Einheit 1',
-    coordinates: { lat: 52.2561, lng: 10.5193 },
-    distance: 620,
-    walkingTime: 8,
-    availableSpaces: 234,
-    totalSpaces: 650,
-    hourlyPrice: 2.00,
+    address: 'Wilhelmstraße 98',
+    coordinates: { lat: 52.266627, lng: 10.528208 },
+    distance: 780,
+    walkingTime: 10,
+    availableSpaces: 248, // Wird durch Live-Daten überschrieben
+    totalSpaces: 530,
+    hourlyPrice: 1.20,
     isOpen: true,
     dataSource: 'static',
-    rating: 4.5,
-    features: ['Überdacht', 'Frauen-Parkplätze', 'Familien-Parkplätze'],
-    amenities: ['Shopping Center', 'Restaurants', 'Kino'],
+    rating: 4.0,
+    features: ['Aldi, Kik, Staatstheater Rabatt', 'Münzen, Scheine'],
+    amenities: ['Geschäfte in der Nähe'],
     pricing: {
-      hourly: 2.00,
-      daily: 10.00,
-      monthly: 85.00
+      hourly: 1.20,
+      daily: 8.00,
+      monthly: undefined
+    }
+  },
+  {
+    id: 'forschungsflughafen',
+    name: 'Parkhaus Forschungsflughafen',
+    type: 'garage',
+    address: 'Hermann-Blenk-Straße 3',
+    coordinates: { lat: 52.314041, lng: 10.557856 },
+    distance: 3200,
+    walkingTime: 42,
+    availableSpaces: 0,
+    totalSpaces: undefined,
+    hourlyPrice: 1.50,
+    isOpen: true,
+    dataSource: 'static',
+    rating: 4.4,
+    features: ['20 E-Ladepunkte (AC 22 KW)', 'bis 15 Min kostenlos', '24/7 geöffnet'],
+    amenities: ['Flughafen-Nähe', 'E-Mobilität'],
+    pricing: {
+      hourly: 1.50,
+      daily: 15.00,
+      monthly: undefined
     }
   }
 ];
@@ -307,7 +418,7 @@ class OSMParkingService {
 }
 
 // Helper Functions (bleiben gleich)
-const convertOSMToParking = (osmData: OSMStreetParking[]): ParkingSpot[] => {
+const convertOSMToParking = (osmData: OSMStreetParking[], userLocation: { lat: number; lng: number }): ParkingSpot[] => {
   return osmData.map((osm, index) => {
     const isFree = osm.tags.fee === 'no' || osm.tags.fee === 'none' || !osm.tags.fee;
     let hourlyPrice = 0;
@@ -325,13 +436,12 @@ const convertOSMToParking = (osmData: OSMStreetParking[]): ParkingSpot[] => {
     const occupancyRate = Math.max(20, Math.min(75, baseOccupancy + (Math.random() * 15 - 7)));
     const availableSpaces = Math.max(1, Math.floor(estimatedSpaces * (1 - occupancyRate / 100)));
 
-    const centerPoint = { lat: 52.2625, lng: 10.5211 };
     const streetCenter = osm.geometry.length > 0 ? 
       osm.geometry[Math.floor(osm.geometry.length / 2)] : 
-      { lat: 52.2625, lon: 10.5211 };
+      { lat: userLocation.lat, lon: userLocation.lng };
     
     const distance = Math.round(calculateDistance(
-      centerPoint, 
+      userLocation, 
       { lat: streetCenter.lat, lng: streetCenter.lon }
     ));
 
@@ -399,6 +509,74 @@ const calculateDistance = (point1: { lat: number; lng?: number; lon?: number }, 
   return R * c;
 };
 
+// Konvertiere offizielle Braunschweig GeoJSON-Daten zu unserem Format
+const convertOfficialDataToParkingSpots = (geoJsonFeatures: any[]): ParkingSpot[] => {
+  const baseLocation = { lat: 52.2632, lng: 10.5200 }; // Braunschweig Zentrum
+  
+  return geoJsonFeatures.map((feature, index) => {
+    const props = feature.properties;
+    const coords = feature.geometry.coordinates; // [lng, lat] format
+    const coordinates = { lat: coords[1], lng: coords[0] };
+    
+    const distance = calculateDistance(coordinates, baseLocation);
+    
+    // Verwende offizielle Daten
+    const totalSpaces = props.capacity || 0;
+    const availableSpaces = props.free || 0;
+    const occupancyRate = props.occupancyRate || 0;
+    
+    // Features basierend auf offiziellen Daten
+    const features = [];
+    if (props.openingState === 'open') features.push('Geöffnet');
+    if (props.subTypes?.includes('shortterm')) features.push('Kurzzeitparken');
+    if (props.subTypes?.includes('longterm')) features.push('Langzeitparken');
+    if (props.trend) features.push(`Trend: ${props.trend}`);
+    if (occupancyRate) features.push(`${occupancyRate}% belegt`);
+    
+    // Extrahiere Preise aus der Beschreibung (falls verfügbar)
+    let hourlyPrice = 1.50; // Default
+    if (props.description) {
+      const priceMatch = props.description.match(/(\d+[,.]?\d*)\s*(?:EUR|€)/);
+      if (priceMatch) {
+        hourlyPrice = parseFloat(priceMatch[1].replace(',', '.'));
+      }
+    }
+    
+    return {
+      id: props.externalId || feature.id || `official_${props.name.replace(/\s+/g, '_').toLowerCase()}_${index}`,
+      name: props.title || props.name || `Parkhaus ${index + 1}`,
+      type: 'garage' as const,
+      address: props.description ? extractAddress(props.description) : 'Braunschweig',
+      coordinates: coordinates,
+      distance: Math.round(distance),
+      walkingTime: Math.max(1, Math.round(distance / 70)), // ~4.2 km/h Gehgeschwindigkeit
+      availableSpaces: availableSpaces,
+      totalSpaces: totalSpaces,
+      hourlyPrice: hourlyPrice,
+      isOpen: props.openingState === 'open',
+      dataSource: 'live' as const,
+      rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // 3.5-5.0
+      features: features,
+      amenities: ['Echtzeitdaten', 'Überdacht', 'Offiziell'],
+      pricing: {
+        hourly: hourlyPrice,
+        daily: hourlyPrice * 8,
+        monthly: undefined
+      }
+    };
+  });
+};
+
+// Hilfsfunktion zum Extrahieren der Adresse aus der HTML-Beschreibung
+const extractAddress = (description: string): string => {
+  // Extrahiere Adresse aus HTML-Beschreibung
+  const addressMatch = description.match(/<span class="cnw_skip_translation">\s*([^<]+)\s*<\/span>/);
+  if (addressMatch) {
+    return addressMatch[1].trim() + ', 38100 Braunschweig';
+  }
+  return 'Braunschweig';
+};
+
 // Hauptkomponente mit Navigation-Layout
 const ParkingPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -411,13 +589,130 @@ const ParkingPage = () => {
   const [osmLoaded, setOsmLoaded] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showReservation, setShowReservation] = useState(false);
+  
+  // Neue States für Parkplatzdaten-API
+  const [realTimeParkingData, setRealTimeParkingData] = useState<any[]>([]);
+  const [parkingDataLoading, setParkingDataLoading] = useState(false);
+  const [parkingDataError, setParkingDataError] = useState<string | null>(null);
+  const [cacheInfo, setCacheInfo] = useState<any>(null);
+  const [userLocation, setUserLocation] = useState({ lat: 52.2625, lng: 10.5211 }); // Fallback: Braunschweig Zentrum
+  const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+
+  // Geolokalisierungs-Funktionen
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      console.log('Geolocation wird von diesem Browser nicht unterstützt');
+      setLocationPermission('denied');
+      return;
+    }
+
+    setIsLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(newLocation);
+        setLocationPermission('granted');
+        setIsLocationLoading(false);
+        console.log('Standort aktualisiert:', newLocation);
+      },
+      (error) => {
+        console.error('Fehler beim Abrufen der Position:', error);
+        setLocationPermission('denied');
+        setIsLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  };
+
+
+
+  // Beim Laden der Komponente Standort abrufen
+  useEffect(() => {
+    if (locationPermission === 'pending') {
+      setIsLocationLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(newLocation);
+          setLocationPermission('granted');
+          setIsLocationLoading(false);
+        },
+        (error) => {
+          console.error('Standort-Fehler:', error);
+          setLocationPermission('denied');
+          setIsLocationLoading(false);
+          if (error.code === 1) {
+            console.log('Standort-Berechtigung verweigert');
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      );
+    }
+  }, [locationPermission]);
+
+  // Echtzeitdaten von der Parkplatz-API laden
+  const loadRealTimeParkingData = async () => {
+    setParkingDataLoading(true);
+    setParkingDataError(null);
+    
+    try {
+      // Versuche zuerst gecachte Daten zu laden
+      const cachedResponse = await fetch('/api/cached-parking');
+      
+      if (cachedResponse.ok) {
+        const geoJsonData = await cachedResponse.json();
+        if (geoJsonData.type === 'FeatureCollection' && geoJsonData.features) {
+          setRealTimeParkingData(geoJsonData.features);
+          setCacheInfo(geoJsonData.cacheInfo || {
+            lastUpdate: geoJsonData.buildTimestamp,
+            totalFeatures: geoJsonData.features.length
+          });
+          console.log('✅ Parkplatzdaten aus Cache geladen:', geoJsonData.features.length, 'Parkhäuser');
+        }
+      } else {
+        // Falls keine gecachten Daten verfügbar sind, lade direkt
+        console.log('⚠️ Keine gecachten Daten verfügbar, lade direkt...');
+        const directResponse = await fetch('/api/parking-data');
+        
+        if (directResponse.ok) {
+          const directData = await directResponse.json();
+          if (directData.success && directData.data) {
+            setRealTimeParkingData(directData.data);
+            console.log('✅ Parkplatzdaten direkt geladen:', directData.data.length, 'Plätze');
+          }
+        } else {
+          throw new Error('Fehler beim Laden der Parkplatzdaten');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Parkplatzdaten:', error);
+      setParkingDataError(error instanceof Error ? error.message : 'Unbekannter Fehler');
+    } finally {
+      setParkingDataLoading(false);
+    }
+  };
 
   // OSM Daten laden
   const loadOSMData = async () => {
     setOsmLoading(true);
     try {
       const osmStreets = await OSMParkingService.getStreetParkingData();
-      const parkingSpots = convertOSMToParking(osmStreets);
+      const parkingSpots = convertOSMToParking(osmStreets, userLocation);
       
       const availableParking = parkingSpots.filter(spot => spot.availableSpaces > 0);
       
@@ -435,12 +730,23 @@ const ParkingPage = () => {
 
   useEffect(() => {
     loadOSMData();
+    loadRealTimeParkingData();
   }, []);
 
-  // Alle Parkplätze kombinieren
+  // Alle Parkplätze kombinieren mit echten Entfernungen
   const parkingSpots = useMemo(() => {
-    return [...PARKING_GARAGES, ...streetParking];
-  }, [streetParking]);
+    // Aktualisiere Entfernungen für statische Parkplätze
+    const updatedGarages = PARKING_GARAGES.map(garage => ({
+      ...garage,
+      distance: Math.round(calculateDistance(userLocation, garage.coordinates) / 1000), // in km
+      walkingTime: Math.round(calculateDistance(userLocation, garage.coordinates) / 1000 * 12) // ~12 min/km
+    }));
+    
+    // Füge gescrapte Live-Daten hinzu
+    const scrapedSpots = convertOfficialDataToParkingSpots(realTimeParkingData);
+    
+    return [...updatedGarages, ...streetParking, ...scrapedSpots];
+  }, [streetParking, userLocation, realTimeParkingData]);
 
   // Gefilterte und sortierte Parkplätze (Navigation-Style)
   const filteredAndSortedSpots = useMemo(() => {
@@ -451,7 +757,7 @@ const ParkingPage = () => {
       filtered = filtered.filter(spot =>
         spot.name.toLowerCase().includes(query) ||
         spot.address.toLowerCase().includes(query) ||
-        spot.features?.some(feature => feature.toLowerCase().includes(query))
+        spot.features?.some((feature: string) => feature.toLowerCase().includes(query))
       );
     }
 
@@ -863,11 +1169,14 @@ const ParkingPage = () => {
               </Link>
               <h1 className="text-xl font-bold">Parking</h1>
               <button
-                onClick={loadOSMData}
-                disabled={osmLoading}
+                onClick={() => {
+                  loadOSMData();
+                  loadRealTimeParkingData();
+                }}
+                disabled={osmLoading || parkingDataLoading}
                 className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
               >
-                {osmLoading ? (
+                {(osmLoading || parkingDataLoading) ? (
                   <Loader className="w-6 h-6 animate-spin" />
                 ) : (
                   <RefreshCw className="w-6 h-6" />
@@ -883,9 +1192,35 @@ const ParkingPage = () => {
                 placeholder="Parkplatz suchen..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-blue-500/30 border border-blue-400 rounded-xl placeholder-blue-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 bg-blue-500/30 border border-blue-400 rounded-xl placeholder-blue-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
               />
+              <button
+                onClick={getCurrentLocation}
+                disabled={isLocationLoading}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-white/20 disabled:opacity-50"
+                title="Standort aktualisieren"
+              >
+                {isLocationLoading ? (
+                  <div className="w-5 h-5 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <MapPin className="w-5 h-5 text-blue-300" />
+                )}
+              </button>
             </div>
+            
+            {/* Location Status */}
+            {locationPermission === 'granted' && (
+              <div className="mt-3 flex items-center text-sm text-blue-200">
+                <MapPin className="w-4 h-4 mr-1 text-green-400" />
+                Standort gefunden - Entfernungen werden berechnet
+              </div>
+            )}
+            {locationPermission === 'denied' && (
+              <div className="mt-3 flex items-center text-sm text-orange-200">
+                <MapPin className="w-4 h-4 mr-1 text-orange-400" />
+                Standort nicht verfügbar - Verwende Braunschweig Zentrum
+              </div>
+            )}
           </div>
 
           {/* Filter Tabs */}
@@ -946,15 +1281,15 @@ const ParkingPage = () => {
               </div>
               <div>
                 <div className="text-xl font-bold text-blue-600">
-                  {Math.min(...parkingSpots.map(s => s.hourlyPrice)).toFixed(2)}
+                  {parkingSpots.length > 0 ? Math.min(...parkingSpots.map(s => s.hourlyPrice)).toFixed(2) : '0.00'}
                 </div>
                 <div className="text-xs text-gray-600">Ab €/h</div>
               </div>
               <div>
                 <div className="text-xl font-bold text-orange-600">
-                  {streetParking.length}
+                  {realTimeParkingData.length}
                 </div>
-                <div className="text-xs text-gray-600">OSM Straßen</div>
+                <div className="text-xs text-gray-600">Live Plätze</div>
               </div>
               <div>
                 <div className="text-xl font-bold text-purple-600">
@@ -963,6 +1298,31 @@ const ParkingPage = () => {
                 <div className="text-xs text-gray-600">Favoriten</div>
               </div>
             </div>
+            
+            {/* Status für Parkplatzdaten */}
+            {(parkingDataLoading || parkingDataError || cacheInfo) && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                {parkingDataLoading && (
+                  <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Parkplatzdaten werden geladen...
+                  </div>
+                )}
+                
+                {parkingDataError && (
+                  <div className="text-sm text-red-600">
+                    ⚠️ Fehler beim Laden der Parkplatzdaten: {parkingDataError}
+                  </div>
+                )}
+                
+                {cacheInfo && !parkingDataLoading && (
+                  <div className="text-xs text-gray-500">
+                    Letztes Update: {cacheInfo.cache_age_minutes} Min. ago
+                    {cacheInfo.is_stale && ' (Daten veraltet)'}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content */}

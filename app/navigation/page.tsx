@@ -1,3 +1,4 @@
+'use client';
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -121,13 +122,97 @@ function NavigationPage() {
       const [currentMode, setCurrentMode] = useState<'search' | 'map' | 'ar' | 'route'>('search');
       const [recentSearches, setRecentSearches] = useState<string[]>([]);
       const [favoriteDestinations, setFavoriteDestinations] = useState<string[]>([]);
-      const [userLocation, setUserLocation] = useState({ lat: 52.2625, lng: 10.5211 });
+      const [userLocation, setUserLocation] = useState({ lat: 52.2625, lng: 10.5211 }); // Fallback: Braunschweig Zentrum
+      const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
+      const [isLocationLoading, setIsLocationLoading] = useState(false);
       const [transportMode, setTransportMode] = useState<'walking' | 'driving' | 'cycling' | 'transit'>('walking');
 
+      // Function to get user's real location
+      const getCurrentLocation = () => {
+        if (!navigator.geolocation) {
+          console.log('Geolocation wird von diesem Browser nicht unterstützt');
+          setLocationPermission('denied');
+          return;
+        }
+
+        setIsLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserLocation({ lat: latitude, lng: longitude });
+            setLocationPermission('granted');
+            setIsLocationLoading(false);
+            console.log(`Echter Standort gefunden: ${latitude}, ${longitude}`);
+          },
+          (error) => {
+            console.error('Fehler beim Abrufen der Position:', error);
+            setLocationPermission('denied');
+            setIsLocationLoading(false);
+            // Fallback bleibt bei Braunschweig Zentrum
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 Minuten Cache
+          }
+        );
+      };
+
+      // Get user's real location on component mount
+      useEffect(() => {
+        getCurrentLocation();
+      }, []);
+
       // --- Helper functions ---
+      const requestLocationPermission = () => {
+        if (!navigator.geolocation) {
+          alert('Ihr Browser unterstützt keine Standortbestimmung');
+          return;
+        }
+
+        setIsLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserLocation({ lat: latitude, lng: longitude });
+            setLocationPermission('granted');
+            setIsLocationLoading(false);
+            console.log(`Standort aktualisiert: ${latitude}, ${longitude}`);
+          },
+          (error) => {
+            console.error('Standort-Fehler:', error);
+            setLocationPermission('denied');
+            setIsLocationLoading(false);
+            if (error.code === 1) {
+              alert('Bitte erlauben Sie den Zugriff auf Ihren Standort in den Browser-Einstellungen');
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0 // Aktueller Standort, kein Cache
+          }
+        );
+      };
+
+      // Haversine-Formel für echte Entfernungsberechnung
+      const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+        const R = 6371; // Erdradius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        return Math.round(distance * 1000); // In Meter
+      };
+
       const openGoogleMapsNavigation = (destination: Destination) => {
-        const encodedAddress = encodeURIComponent(destination.address);
-        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}&travelmode=${transportMode === 'walking' ? 'walking' : transportMode === 'driving' ? 'driving' : transportMode === 'cycling' ? 'bicycling' : 'transit'}`;
+        // Verwende den aktuellen Nutzer-Standort als Startpunkt
+        const startCoords = `${userLocation.lat},${userLocation.lng}`;
+        const destinationCoords = `${destination.coordinates.lat},${destination.coordinates.lng}`;
+        const googleMapsUrl = `https://www.google.com/maps/dir/${startCoords}/${destinationCoords}?travelmode=${transportMode === 'walking' ? 'walking' : transportMode === 'driving' ? 'driving' : transportMode === 'cycling' ? 'bicycling' : 'transit'}`;
         window.open(googleMapsUrl, '_blank');
       };
 
@@ -155,9 +240,31 @@ function NavigationPage() {
         }
       };
 
-      // --- Filtered destinations ---
+      // --- Filtered destinations with real distances ---
       const filteredDestinations = useMemo(() => {
-        let filtered = destinations;
+        // Berechne echte Entfernungen basierend auf dem aktuellen Standort
+        let filtered = destinations.map(dest => ({
+          ...dest,
+          distance: calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            dest.coordinates.lat, 
+            dest.coordinates.lng
+          ),
+          walkingTime: Math.ceil(calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            dest.coordinates.lat, 
+            dest.coordinates.lng
+          ) / 80), // ~80m/min Gehgeschwindigkeit
+          drivingTime: Math.ceil(calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            dest.coordinates.lat, 
+            dest.coordinates.lng
+          ) / 500) // ~30km/h Stadtverkehr
+        }));
+
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
           filtered = filtered.filter(dest =>
@@ -184,7 +291,7 @@ function NavigationPage() {
         }
         filtered.sort((a, b) => a.distance - b.distance);
         return filtered;
-      }, [searchQuery, selectedCategory]);
+      }, [searchQuery, selectedCategory, userLocation.lat, userLocation.lng]);
 
       const categories = ['Alle', 'Sehenswürdigkeiten', 'Restaurants', 'Shopping', 'Kultur', 'Transport'];
 
@@ -201,7 +308,39 @@ function NavigationPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              <button
+                onClick={getCurrentLocation}
+                disabled={isLocationLoading}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
+                title="Standort aktualisieren"
+              >
+                {isLocationLoading ? (
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
             </div>
+            {locationPermission === 'granted' && (
+              <div className="mb-3 flex items-center text-sm text-gray-600">
+                <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Ihr aktueller Standort wurde gefunden
+              </div>
+            )}
+            {locationPermission === 'denied' && (
+              <div className="mb-3 flex items-center text-sm text-red-600">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Standort-Berechtigung verweigert - Verwende Braunschweig Zentrum
+              </div>
+            )}
             <div className="flex gap-2 overflow-x-auto pb-2">
               {categories.map(category => (
                 <button

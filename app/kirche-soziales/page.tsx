@@ -7,7 +7,8 @@ import {
   ArrowLeft, Heart, MapPin, Clock, Phone, Mail, 
   Users, Calendar, Info, Star, ExternalLink,
   Cross, HandHeart, Baby, GraduationCap, Home,
-  Shield, Globe, BookOpen, Music, Coffee
+  Shield, Globe, BookOpen, Music, Coffee, Play,
+  Bell, MessageSquare, UserPlus, Video, Radio
 } from 'lucide-react'
 
 interface Service {
@@ -133,8 +134,16 @@ const services: Service[] = [
 
 export default function KircheSozialesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<'services' | 'gottesdienst' | 'hilfe'>('services')
 
-
+  // Beispiel Live-Gottesdienst Daten
+  const liveService = {
+    title: 'Sonntagsgottesdienst',
+    church: 'Dom St. Blasii',
+    isLive: true,
+    viewers: 142,
+    nextService: '2025-09-29 10:00'
+  }
 
   const filteredServices = selectedCategory === 'all' 
     ? services 
@@ -219,8 +228,50 @@ export default function KircheSozialesPage() {
           </div>
         </div>
 
-        {/* Filter */}
-        <div className="bg-white border-b border-gray-200 p-4">
+        {/* Tab Navigation */}
+        <div className="bg-white border-b border-gray-200 px-4 pt-4">
+          <div className="flex gap-1 overflow-x-auto pb-4">
+            <button
+              onClick={() => setActiveTab('services')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'services'
+                  ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Services
+            </button>
+            <button
+              onClick={() => setActiveTab('gottesdienst')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'gottesdienst'
+                  ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Music className="w-4 h-4" />
+              Gottesdienste
+            </button>
+            <button
+              onClick={() => setActiveTab('hilfe')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'hilfe'
+                  ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <HandHeart className="w-4 h-4" />
+              Nachbarschaftshilfe
+            </button>
+          </div>
+        </div>
+
+        {/* Services Tab Content */}
+        {activeTab === 'services' && (
+          <>
+            {/* Filter */}
+            <div className="bg-white border-b border-gray-200 p-4">
           <div className="flex gap-2 overflow-x-auto">
             <button
               onClick={() => setSelectedCategory('all')}
@@ -354,6 +405,176 @@ export default function KircheSozialesPage() {
             {filteredServices.length} {filteredServices.length === 1 ? 'Angebot verfügbar' : 'Angebote verfügbar'}
           </div>
         </div>
+          </>
+        )}
+
+        {/* Gottesdienst Tab Content */}
+        {activeTab === 'gottesdienst' && (
+          <div className="p-4 space-y-4">
+            {/* Live Gottesdienst */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-red-600">LIVE</span>
+                </div>
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <Users className="w-4 h-4" />
+                  {liveService.viewers} Zuschauer
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-lg text-gray-800 mb-1">{liveService.title}</h3>
+              <p className="text-sm text-gray-600 mb-3">{liveService.church}</p>
+              
+              <div className="flex gap-2">
+                <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-red-700">
+                  <Play className="w-4 h-4" />
+                  Live ansehen
+                </button>
+                <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-300">
+                  <Bell className="w-4 h-4" />
+                  Erinnerung
+                </button>
+              </div>
+            </div>
+
+            {/* Kommende Gottesdienste */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-800">Kommende Gottesdienste</h3>
+              
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Music className="w-5 h-5 text-blue-600" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800">Abendandacht</h4>
+                    <p className="text-sm text-gray-600">St. Magni Kirche</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-800">Morgen</p>
+                    <p className="text-sm text-gray-600">19:00 Uhr</p>
+                  </div>
+                </div>
+                <button className="w-full bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100">
+                  Erinnerung setzen
+                </button>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <UserPlus className="w-5 h-5 text-green-600" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800">Jugendgottesdienst</h4>
+                    <p className="text-sm text-gray-600">Christuskirche</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-800">Samstag</p>
+                    <p className="text-sm text-gray-600">18:00 Uhr</p>
+                  </div>
+                </div>
+                <button className="w-full bg-green-50 text-green-700 py-2 rounded-lg text-sm font-medium hover:bg-green-100">
+                  Teilnehmen
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hilfe Tab Content */}
+        {activeTab === 'hilfe' && (
+          <div className="p-4 space-y-4">
+            {/* Hilfe anbieten Button */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-4 text-center">
+              <HandHeart className="w-8 h-8 mx-auto text-green-600 mb-2" />
+              <h3 className="font-semibold text-gray-800 mb-2">Helfen Sie mit!</h3>
+              <p className="text-sm text-gray-600 mb-3">Bieten Sie Ihre Hilfe in der Nachbarschaft an</p>
+              <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700">
+                Hilfe anbieten
+              </button>
+            </div>
+
+            {/* Aktuelle Hilfe-Anfragen */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-800">Aktuelle Hilfe-Anfragen</h3>
+              
+              <div className="bg-white border border-orange-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium text-gray-800">Einkaufshilfe benötigt</h4>
+                      <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">Mittel</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Weststadt • 0.8 km entfernt</p>
+                    <p className="text-sm text-gray-700 mb-3">Benötige Hilfe beim Wocheneinkauf für ältere Dame</p>
+                    <div className="flex gap-2">
+                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                        Helfen
+                      </button>
+                      <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Nachfragen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-red-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium text-gray-800">Fahrt zum Arzttermin</h4>
+                      <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Hoch</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Innenstadt • 1.2 km entfernt</p>
+                    <p className="text-sm text-gray-700 mb-3">Benötige Fahrt zum Hausarzt morgen um 14:00</p>
+                    <div className="flex gap-2">
+                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                        Helfen
+                      </button>
+                      <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Anrufen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Verfügbare Helfer */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-800">Helfer in Ihrer Nähe</h3>
+              
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800">Thomas B.</h4>
+                    <p className="text-sm text-gray-600">0.5 km • 23 mal geholfen</p>
+                    <div className="flex gap-1 mt-1">
+                      {[1,2,3,4,5].map(star => (
+                        <Star key={star} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mb-1"></div>
+                    <p className="text-xs text-gray-600">Verfügbar</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">Hilft bei: Einkaufen, Transport, Gartenarbeit</p>
+                <button className="w-full bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100">
+                  Kontaktieren
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
