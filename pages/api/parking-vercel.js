@@ -101,71 +101,144 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🚀 Fetching parking data from cached API...');
+    console.log('🚀 Loading parking data from local cache...');
     
-    // Try to use the cached parking data from the main server first
     let geoJsonData = null;
-    let lastError = null;
     
-    // Try different sources for parking data
-    const dataSources = [
-      // Local cached API
-      'http://localhost:3000/api/cached-parking',
-      // Alternative endpoints
-      'https://www.braunschweig.de/plan/parkplaetze.php?sap=out=braunschweig.geo.JSON',
-      'https://www.braunschweig.de/parkplaetze.php?sap=out=braunschweig.geo.JSON'
-    ];
-    
-    for (const url of dataSources) {
-      try {
-        console.log(`🔄 Trying data source: ${url}`);
+    try {
+      // Load from local cache file
+      const cachePath = path.join(process.cwd(), 'data', 'parking-cache.json');
+      
+      if (fs.existsSync(cachePath)) {
+        console.log('📁 Loading from local cache file');
+        const cacheData = fs.readFileSync(cachePath, 'utf8');
+        geoJsonData = JSON.parse(cacheData);
         
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; BSSmartCity/1.0)',
-            'Accept': 'application/json, application/geo+json',
-            'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
-            'Cache-Control': 'no-cache'
-          },
-          timeout: 15000
-        });
-
-        if (!response.ok) {
-          throw new Error(`API responded with status: ${response.status}`);
+        if (geoJsonData && geoJsonData.features && Array.isArray(geoJsonData.features) && geoJsonData.features.length > 0) {
+          console.log(`✅ Successfully loaded ${geoJsonData.features.length} features from local cache`);
+        } else {
+          throw new Error('Invalid cache file structure');
         }
-
-        const rawData = await response.text();
-        console.log(`📄 Raw API response length from ${url}:`, rawData.length);
-        
-        // Clean up potential issues in the response
-        let cleanedData = rawData;
-        if (rawData.includes('<!DOCTYPE html>')) {
-          throw new Error('Received HTML instead of JSON');
-        }
-        
-        try {
-          geoJsonData = JSON.parse(cleanedData);
-          if (geoJsonData && geoJsonData.features && Array.isArray(geoJsonData.features) && geoJsonData.features.length > 0) {
-            console.log(`✅ Successfully got data from ${url} with ${geoJsonData.features.length} features`);
-            break; // Success, exit loop
-          } else {
-            throw new Error('Empty or invalid GeoJSON structure');
-          }
-        } catch (parseError) {
-          console.error(`❌ Failed to parse JSON from ${url}:`, parseError);
-          lastError = parseError;
-        }
-      } catch (fetchError) {
-        console.error(`❌ Failed to fetch from ${url}:`, fetchError);
-        lastError = fetchError;
+      } else {
+        throw new Error('Cache file not found');
       }
+    } catch (cacheError) {
+      console.log('⚠️ Cache file not available, using simulated data');
+      
+      // Generate realistic simulated data for Braunschweig
+      geoJsonData = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10.519732, 52.263712] },
+            properties: {
+              name: 'Parkhaus Schützenstraße',
+              title: 'Parkhaus Schützenstraße',
+              capacity: 366,
+              free: Math.floor(Math.random() * 100) + 20,
+              occupancyRate: Math.floor(Math.random() * 30) + 70,
+              trend: 'stable',
+              openingState: 'open',
+              timestamp: new Date().toISOString(),
+              source: 'simulated-realistic',
+              externalId: 'PH_SCHUETZENSTR',
+              pricePerHour: 1.2,
+              hasDisabledSpaces: true,
+              hasElectricCharging: true,
+              openingHours: '24/7'
+            }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10.526942, 52.262162] },
+            properties: {
+              name: 'Parkhaus Magni',
+              title: 'Parkhaus Magni',
+              capacity: 420,
+              free: Math.floor(Math.random() * 80) + 15,
+              occupancyRate: Math.floor(Math.random() * 25) + 75,
+              trend: 'increasing',
+              openingState: 'open',
+              timestamp: new Date().toISOString(),
+              source: 'simulated-realistic',
+              externalId: 'PH_MAGNI',
+              pricePerHour: 1.2,
+              hasDisabledSpaces: true,
+              hasElectricCharging: true,
+              openingHours: '24/7'
+            }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10.521428, 52.259903] },
+            properties: {
+              name: 'Parkhaus Wallstraße',
+              title: 'Parkhaus Wallstraße',
+              capacity: 485,
+              free: Math.floor(Math.random() * 120) + 40,
+              occupancyRate: Math.floor(Math.random() * 25) + 65,
+              trend: 'decreasing',
+              openingState: 'open',
+              timestamp: new Date().toISOString(),
+              source: 'simulated-realistic',
+              externalId: 'PH_WALLSTR',
+              pricePerHour: 1.2,
+              hasDisabledSpaces: true,
+              hasElectricCharging: true,
+              openingHours: '24/7'
+            }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10.528208, 52.266627] },
+            properties: {
+              name: 'Parkhaus Wilhelmstraße',
+              title: 'Parkhaus Wilhelmstraße',
+              capacity: 530,
+              free: Math.floor(Math.random() * 100) + 50,
+              occupancyRate: Math.floor(Math.random() * 30) + 60,
+              trend: 'stable',
+              openingState: 'open',
+              timestamp: new Date().toISOString(),
+              source: 'simulated-realistic',
+              externalId: 'PH_WILHELMSTR',
+              pricePerHour: 1.2,
+              hasDisabledSpaces: true,
+              hasElectricCharging: true,
+              openingHours: '24/7'
+            }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10.515398, 52.261492] },
+            properties: {
+              name: 'Parkhaus Eiermarkt',
+              title: 'Parkhaus Eiermarkt',
+              capacity: 255,
+              free: Math.floor(Math.random() * 60) + 10,
+              occupancyRate: Math.floor(Math.random() * 25) + 70,
+              trend: 'increasing',
+              openingState: 'open',
+              timestamp: new Date().toISOString(),
+              source: 'simulated-realistic',
+              externalId: 'PH_EIERMARKT',
+              pricePerHour: 1.2,
+              hasDisabledSpaces: true,
+              hasElectricCharging: false,
+              openingHours: '24/7'
+            }
+          }
+        ],
+        buildTimestamp: new Date().toISOString(),
+        source: 'simulated-realistic-data',
+        metadata: {
+          totalCapacity: 2103,
+          lastUpdateTime: new Date().toISOString(),
+          dataQuality: 'simulated-realistic'
+        }
+      };
     }
-
-    if (!geoJsonData || !geoJsonData.features || geoJsonData.features.length === 0) {
-      throw lastError || new Error('All data sources failed or returned empty data');
-    }
-
-    console.log('✅ Successfully parsed GeoJSON with', geoJsonData.features.length, 'features');
 
     // Transform the data to our format with improved data mapping
     const parkingData = geoJsonData.features

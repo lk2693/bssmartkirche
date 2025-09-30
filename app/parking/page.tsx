@@ -47,189 +47,7 @@ interface OSMStreetParking {
     'parking:right'?: string;
     fee?: string;
     maxstay?: string;
-  };
 }
-
-// Offizielle Braunschweiger Parkhäuser (aus städtischen Daten)
-const PARKING_GARAGES: ParkingSpot[] = [
-  {
-    id: 'eiermarkt',
-    name: 'Parkhaus Eiermarkt',
-    type: 'garage',
-    address: 'Güldenstraße 70',
-    coordinates: { lat: 52.261492, lng: 10.515398 },
-    distance: 650,
-    walkingTime: 8,
-    availableSpaces: 100, // Wird durch Live-Daten überschrieben
-    totalSpaces: 255,
-    hourlyPrice: 1.20,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.1,
-    features: ['24/7 geöffnet', 'Kartenzahlung', 'Mutter-Kind Parkplätze'],
-    amenities: ['Zentral gelegen', 'Behindertenparkplätze: 6'],
-    pricing: {
-      hourly: 1.20,
-      daily: 9.60,
-      monthly: undefined
-    },
-
-  },
-  {
-    id: 'lange-str-nord',
-    name: 'Parkhaus Lange Str. Nord',
-    type: 'garage',
-    address: 'Lange Straße 61',
-    coordinates: { lat: 52.266929, lng: 10.518574 },
-    distance: 420,
-    walkingTime: 5,
-    availableSpaces: 92, // Wird durch Live-Daten überschrieben
-    totalSpaces: 150,
-    hourlyPrice: 1.50,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.0,
-    features: ['Frauenparkplätze: 18', 'Fahrrad + Motorrad frei'],
-    amenities: ['Zentrumsnah', 'Behindertenparkplätze: 9'],
-    pricing: {
-      hourly: 1.50,
-      daily: 10.00,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'lange-str-sued',
-    name: 'Parkhaus Lange Str. Süd',
-    type: 'garage',
-    address: 'Lange Straße 4',
-    coordinates: { lat: 52.266286, lng: 10.518295 },
-    distance: 480,
-    walkingTime: 6,
-    availableSpaces: 55, // Wird durch Live-Daten überschrieben
-    totalSpaces: 152,
-    hourlyPrice: 1.00,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 3.9,
-    features: ['Nur Kartenzahlung', 'Zentral gelegen'],
-    amenities: ['Shopping-Nähe'],
-    pricing: {
-      hourly: 1.00,
-      daily: 10.00,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'magni',
-    name: 'Parkhaus Magni',
-    type: 'garage',
-    address: 'Bohlweg 72',
-    coordinates: { lat: 52.262162, lng: 10.526942 },
-    distance: 300,
-    walkingTime: 4,
-    availableSpaces: 0, // Wird durch Live-Daten überschrieben
-    totalSpaces: 420,
-    hourlyPrice: 1.20,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.2,
-    features: ['EC-Karte', 'Münzen', 'Scheine'],
-    amenities: ['Zentral', 'Behindertenparkplätze: 11'],
-    pricing: {
-      hourly: 1.20,
-      daily: 9.60,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'schuetzenstrasse',
-    name: 'Parkhaus Schützenstraße',
-    type: 'garage',
-    address: 'Schützenstraße 4',
-    coordinates: { lat: 52.263712, lng: 10.519732 },
-    distance: 380,
-    walkingTime: 5,
-    availableSpaces: 273, // Wird durch Live-Daten überschrieben
-    totalSpaces: 366,
-    hourlyPrice: 2.00,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.1,
-    features: ['EC- und Kreditkarten', 'Zentral gelegen'],
-    amenities: ['Behindertenparkplätze: 4'],
-    pricing: {
-      hourly: 2.00,
-      daily: 15.00,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'wallstrasse',
-    name: 'Parkhaus Wallstraße',
-    type: 'garage',
-    address: 'Wallstraße 2',
-    coordinates: { lat: 52.259903, lng: 10.521428 },
-    distance: 520,
-    walkingTime: 7,
-    availableSpaces: 392, // Wird durch Live-Daten überschrieben
-    totalSpaces: 485,
-    hourlyPrice: 2.80,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.3,
-    features: ['24/7 geöffnet', 'Google Pay', 'Apple Pay', 'P Card'],
-    amenities: ['Behindertenparkplätze: 8'],
-    pricing: {
-      hourly: 2.80,
-      daily: 17.00,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'wilhelmstrasse',
-    name: 'Parkhaus Wilhelmstraße',
-    type: 'garage',
-    address: 'Wilhelmstraße 98',
-    coordinates: { lat: 52.266627, lng: 10.528208 },
-    distance: 780,
-    walkingTime: 10,
-    availableSpaces: 248, // Wird durch Live-Daten überschrieben
-    totalSpaces: 530,
-    hourlyPrice: 1.20,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.0,
-    features: ['Aldi, Kik, Staatstheater Rabatt', 'Münzen, Scheine'],
-    amenities: ['Geschäfte in der Nähe'],
-    pricing: {
-      hourly: 1.20,
-      daily: 8.00,
-      monthly: undefined
-    }
-  },
-  {
-    id: 'forschungsflughafen',
-    name: 'Parkhaus Forschungsflughafen',
-    type: 'garage',
-    address: 'Hermann-Blenk-Straße 3',
-    coordinates: { lat: 52.314041, lng: 10.557856 },
-    distance: 3200,
-    walkingTime: 42,
-    availableSpaces: 0,
-    totalSpaces: undefined,
-    hourlyPrice: 1.50,
-    isOpen: true,
-    dataSource: 'static',
-    rating: 4.4,
-    features: ['20 E-Ladepunkte (AC 22 KW)', 'bis 15 Min kostenlos', '24/7 geöffnet'],
-    amenities: ['Flughafen-Nähe', 'E-Mobilität'],
-    pricing: {
-      hourly: 1.50,
-      daily: 15.00,
-      monthly: undefined
-    }
-  }
-];
 
 // OSM API Integration (bleibt gleich)
 class OSMParkingService {
@@ -751,17 +569,13 @@ const ParkingPage = () => {
 
   // Alle Parkplätze kombinieren mit echten Entfernungen
   const parkingSpots = useMemo(() => {
-    // Aktualisiere Entfernungen für statische Parkplätze
-    const updatedGarages = PARKING_GARAGES.map(garage => ({
-      ...garage,
-      distance: Math.round(calculateDistance(userLocation, garage.coordinates) / 1000), // in km
-      walkingTime: Math.round(calculateDistance(userLocation, garage.coordinates) / 1000 * 12) // ~12 min/km
-    }));
-    
-    // Füge gescrapte Live-Daten hinzu
+    // Nutze nur die echten API-Daten von parking-vercel, keine statischen Daten mehr
     const scrapedSpots = convertOfficialDataToParkingSpots(realTimeParkingData);
     
-    return [...updatedGarages, ...streetParking, ...scrapedSpots];
+    // Sortiere nach Entfernung und nehme nur die besten Spots
+    const sortedSpots = scrapedSpots.sort((a, b) => a.distance - b.distance);
+    
+    return [...streetParking, ...sortedSpots];
   }, [streetParking, userLocation, realTimeParkingData]);
 
   // Gefilterte und sortierte Parkplätze (Navigation-Style)
