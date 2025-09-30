@@ -14,21 +14,27 @@
         "name": "Parkhaus Schützenstraße",
         "title": "Parkhaus Schützenstraße",
         "capacity": 366,
-        "free": 71,
-        "occupancy": 295,
-        "occupancyRate": 81,
+        "free": 25,
+        "occupancy": 341,
+        "occupancyRate": 93,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_SCHUETZENSTR",
-        "tooltip": "71 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "25 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.2,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": true,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.93,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -44,21 +50,27 @@
         "name": "Parkhaus Magni",
         "title": "Parkhaus Magni",
         "capacity": 420,
-        "free": 21,
-        "occupancy": 399,
-        "occupancyRate": 95,
+        "free": 42,
+        "occupancy": 378,
+        "occupancyRate": 90,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_MAGNI",
-        "tooltip": "21 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "42 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.2,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": true,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.9,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -79,16 +91,22 @@
         "occupancyRate": 95,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_LANGE_NORD",
         "tooltip": "8 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.5,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": false,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.95,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -104,21 +122,27 @@
         "name": "Parkhaus Lange Straße Süd",
         "title": "Parkhaus Lange Straße Süd",
         "capacity": 152,
-        "free": 12,
-        "occupancy": 140,
-        "occupancyRate": 92,
+        "free": 8,
+        "occupancy": 144,
+        "occupancyRate": 95,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_LANGE_SUED",
-        "tooltip": "12 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "8 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.5,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": false,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.95,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -134,21 +158,27 @@
         "name": "Parkhaus Wallstraße",
         "title": "Parkhaus Wallstraße",
         "capacity": 485,
-        "free": 45,
-        "occupancy": 440,
+        "free": 42,
+        "occupancy": 443,
         "occupancyRate": 91,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_WALLSTR",
-        "tooltip": "45 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "42 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.2,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": true,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.92,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -164,21 +194,27 @@
         "name": "Parkhaus Wilhelmstraße",
         "title": "Parkhaus Wilhelmstraße",
         "capacity": 530,
-        "free": 147,
-        "occupancy": 383,
-        "occupancyRate": 72,
+        "free": 97,
+        "occupancy": 433,
+        "occupancyRate": 82,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_WILHELMSTR",
-        "tooltip": "147 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "97 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.2,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": true,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.82,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     },
     {
@@ -194,31 +230,46 @@
         "name": "Parkhaus Eiermarkt",
         "title": "Parkhaus Eiermarkt",
         "capacity": 255,
-        "free": 33,
-        "occupancy": 222,
-        "occupancyRate": 87,
+        "free": 13,
+        "occupancy": 242,
+        "occupancyRate": 95,
         "trend": "increasing",
         "openingState": "open",
-        "timestamp": "2025-09-30T07:46:21.310Z",
+        "timestamp": "2025-09-30T12:10:05.237Z",
         "source": "braunschweig-realistic-live",
         "externalId": "PH_EIERMARKT",
-        "tooltip": "33 freie Plätze",
-        "lastUpdate": "2025-09-30T07:46:21.310Z",
+        "tooltip": "13 freie Plätze",
+        "lastUpdate": "2025-09-30T12:10:05.237Z",
         "pricePerHour": 1.2,
         "maxHeight": 2,
         "hasDisabledSpaces": true,
         "hasElectricCharging": false,
-        "openingHours": "24/7"
+        "openingHours": "24/7",
+        "debugInfo": {
+          "hour": 14,
+          "dayOfWeek": 2,
+          "occupancyFactor": 0.95,
+          "generatedAt": "30.9.2025, 14:10:05"
+        }
       }
     }
   ],
-  "buildTimestamp": "2025-09-30T07:46:21.310Z",
+  "buildTimestamp": "2025-09-30T12:10:05.237Z",
   "source": "braunschweig-realistic-simulation",
   "metadata": {
     "totalCapacity": 2358,
-    "totalFree": 337,
-    "averageOccupancy": 88,
-    "lastUpdateTime": "2025-09-30T07:46:21.310Z",
-    "dataQuality": "high-fidelity-simulation"
+    "totalFree": 235,
+    "averageOccupancy": 92,
+    "lastUpdateTime": "2025-09-30T12:10:05.237Z",
+    "lastUpdateLocal": "30.9.2025, 14:10:05",
+    "dataQuality": "high-fidelity-live-simulation",
+    "currentHour": 14,
+    "currentDay": 2
+  },
+  "cacheInfo": {
+    "savedAt": "2025-09-30T12:10:05.237Z",
+    "savedAtLocal": "30.9.2025, 14:10:05",
+    "nodeVersion": "v24.1.0",
+    "platform": "darwin"
   }
 }

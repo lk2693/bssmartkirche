@@ -514,9 +514,17 @@ const convertOfficialDataToParkingSpots = (geoJsonFeatures: any[]): ParkingSpot[
   const baseLocation = { lat: 52.2632, lng: 10.5200 }; // Braunschweig Zentrum
   
   return geoJsonFeatures.map((feature, index) => {
-    const props = feature.properties;
-    const coords = feature.geometry.coordinates; // [lng, lat] format
-    const coordinates = { lat: coords[1], lng: coords[0] };
+    const props = feature.properties || {};
+    
+    // Sichere Behandlung der Koordinaten
+    let coordinates = { lat: 52.2632, lng: 10.5200 }; // Fallback zu Braunschweig Zentrum
+    if (feature.geometry && feature.geometry.coordinates && Array.isArray(feature.geometry.coordinates)) {
+      const coords = feature.geometry.coordinates; // [lng, lat] format
+      coordinates = { 
+        lat: parseFloat(coords[1]) || 52.2632, 
+        lng: parseFloat(coords[0]) || 10.5200 
+      };
+    }
     
     const distance = calculateDistance(coordinates, baseLocation);
     
