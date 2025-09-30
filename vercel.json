@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next@latest"
+    }
+  ],
+  "functions": {
+    "pages/api/parking-data.js": {
+      "maxDuration": 30
+    },
+    "pages/api/cached-parking.js": {
+      "maxDuration": 20
+    },
+    "pages/api/parking-vercel.js": {
+      "maxDuration": 15
+    },
+    "pages/api/weather.js": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_WEATHER_API_KEY": "@weather-api-key"
+  },
+  "regions": ["fra1"],
+  "rewrites": [
+    {
+      "source": "/api/parking-live",
+      "destination": "/api/parking-vercel"
+    }
+  ]
+}

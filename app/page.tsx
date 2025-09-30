@@ -152,68 +152,26 @@ const useWeatherData = () => {
       setLoading(true);
       setError(null);
       
-      // Braunschweig coordinates
-      const lat = 52.2625;
-      const lng = 10.5211;
-      
-      const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Weather API key not found');
-      }
-
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric&lang=de`,
-        {
-          next: { revalidate: 1800 } // Cache for 30 minutes
-        }
-      );
+      // Use the new weather API endpoint for better Vercel compatibility
+      const response = await fetch('/api/weather', {
+        next: { revalidate: 1800 } // Cache for 30 minutes
+      });
 
       if (!response.ok) {
         throw new Error(`Weather API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const weatherData = await response.json();
       
       if (!isMountedRef.current) return;
       
-      // Map OpenWeatherMap icons to emojis
-      const getWeatherIcon = (iconCode: string): string => {
-        const iconMap: { [key: string]: string } = {
-          '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️',
-          '03d': '☁️', '03n': '☁️', '04d': '☁️', '04n': '☁️',
-          '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',
-          '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',
-          '50d': '🌫️', '50n': '🌫️'
-        };
-        return iconMap[iconCode] || '🌤️';
-      };
-
-      // Map weather conditions to German
-      const getGermanCondition = (condition: string): string => {
-        const conditionMap: { [key: string]: string } = {
-          'clear sky': 'Klarer Himmel',
-          'few clouds': 'Leicht bewölkt',
-          'scattered clouds': 'Bewölkt',
-          'broken clouds': 'Stark bewölkt',
-          'shower rain': 'Schauer',
-          'rain': 'Regen',
-          'thunderstorm': 'Gewitter',
-          'snow': 'Schnee',
-          'mist': 'Nebel',
-          'fog': 'Nebel',
-          'haze': 'Dunst',
-          'overcast clouds': 'Bedeckt'
-        };
-        return conditionMap[condition.toLowerCase()] || condition;
-      };
-
+      // Use the data directly from our API
       const newWeatherData = {
-        temperature: Math.round(data.main.temp),
-        condition: getGermanCondition(data.weather[0].description),
-        humidity: data.main.humidity,
-        windSpeed: Math.round(data.wind?.speed * 3.6) || 0,
-        icon: getWeatherIcon(data.weather[0].icon)
+        temperature: weatherData.temperature,
+        condition: weatherData.condition,
+        humidity: weatherData.humidity,
+        windSpeed: weatherData.windSpeed,
+        icon: weatherData.icon
       };
 
       // Only update if weather data actually changed significantly

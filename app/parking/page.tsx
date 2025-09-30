@@ -671,37 +671,45 @@ const ParkingPage = () => {
     setParkingDataError(null);
     
     try {
-      // Versuche zuerst gecachte Daten zu laden
-      const cachedResponse = await fetch('/api/cached-parking');
+      // Use the new Vercel-optimized parking API
+      const response = await fetch('/api/parking-vercel');
       
-      if (cachedResponse.ok) {
-        const geoJsonData = await cachedResponse.json();
-        if (geoJsonData.type === 'FeatureCollection' && geoJsonData.features) {
-          setRealTimeParkingData(geoJsonData.features);
-          setCacheInfo(geoJsonData.cacheInfo || {
-            lastUpdate: geoJsonData.buildTimestamp,
-            totalFeatures: geoJsonData.features.length
+      if (response.ok) {
+        const parkingData = await response.json();
+        if (parkingData.success && parkingData.data) {
+          setRealTimeParkingData(parkingData.data);
+          setCacheInfo(parkingData.cacheInfo || {
+            lastUpdate: parkingData.buildTimestamp || new Date().toISOString(),
+            totalFeatures: parkingData.data.length
           });
-          console.log('✅ Parkplatzdaten aus Cache geladen:', geoJsonData.features.length, 'Parkhäuser');
+          console.log('✅ Parkplatzdaten aus Vercel API geladen:', parkingData.data.length, 'Parkhäuser');
+        } else {
+          throw new Error(parkingData.error || 'Fehler beim Laden der Parkplatzdaten');
         }
       } else {
-        // Falls keine gecachten Daten verfügbar sind, lade direkt
-        console.log('⚠️ Keine gecachten Daten verfügbar, lade direkt...');
-        const directResponse = await fetch('/api/parking-data');
-        
-        if (directResponse.ok) {
-          const directData = await directResponse.json();
-          if (directData.success && directData.data) {
-            setRealTimeParkingData(directData.data);
-            console.log('✅ Parkplatzdaten direkt geladen:', directData.data.length, 'Plätze');
-          }
-        } else {
-          throw new Error('Fehler beim Laden der Parkplatzdaten');
-        }
+        throw new Error(`API Fehler: ${response.status}`);
       }
     } catch (error) {
       console.error('❌ Fehler beim Laden der Parkplatzdaten:', error);
       setParkingDataError(error instanceof Error ? error.message : 'Unbekannter Fehler');
+      
+      // Fallback data für bessere Benutzererfahrung
+      setRealTimeParkingData([
+        {
+          id: 'fallback_loewenwall',
+          name: 'Parkhaus Löwenwall',
+          type: 'garage',
+          address: 'Löwenwall 18A, 38100 Braunschweig',
+          coordinates: { lat: 52.2603, lng: 10.5190 },
+          distance: 0.8,
+          walkingTime: 10,
+          availableSpaces: 45,
+          totalSpaces: 150,
+          hourlyPrice: 1.5,
+          isOpen: true,
+          dataSource: 'static'
+        }
+      ]);
     } finally {
       setParkingDataLoading(false);
     }
