@@ -111,6 +111,8 @@ const EventDetailPage = () => {
   const [isAttending, setIsAttending] = useState(false);
 
   useEffect(() => {
+    if (!params?.id) return;
+    
     const eventId = params.id as string;
     const foundEvent = EVENTS_DATA.find(e => e.id === eventId);
     
@@ -120,7 +122,7 @@ const EventDetailPage = () => {
       setIsAttending(foundEvent.isAttending);
     }
     setIsLoading(false);
-  }, [params.id]);
+  }, [params?.id]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('de-DE', { 
