@@ -1,5 +1,5 @@
 // API Route für Event-Management
-import { EVENTS_DATA, getEventById } from '../../../lib/events-data';
+import { EVENTS_DATA, getEventById } from '../../lib/events-data';
 
 // Event-Filter-Funktionen direkt hier implementieren
 const getCurrentEvents = () => {

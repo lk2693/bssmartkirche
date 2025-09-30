@@ -1,7 +1,7 @@
 // Fresh Live-Daten Scheduler - NO OLD DATA!
 import fs from 'fs';
 import path from 'path';
-import scheduler from '../../lib/parking-scheduler-fresh.js';
+import scheduler from '../../lib/parking-scheduler.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
