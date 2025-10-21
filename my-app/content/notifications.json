@@ -1,0 +1,40 @@
+{
+  "notifications": [
+    {
+      "id": "notification-2",
+      "title": "Veranstaltung vom Stadtmarketing 20:30",
+      "message": "Jetzt noch schnell letzte Tickets sichern. Alle Wichtigen Informationen bzgl Anfahrt und Parken findet ihr in den Details",
+      "type": "info",
+      "icon": " ",
+      "active": true,
+      "priority": 2,
+      "partnerId": "stadtverkehr",
+      "validFrom": "2025-10-01",
+      "validUntil": "2025-10-15",
+      "displaySettings": {
+        "showOnPages": [
+          "home",
+          "navigation",
+          "parking"
+        ],
+        "showOnce": false,
+        "dismissible": true,
+        "autoCloseAfter": 0,
+        "position": "top"
+      },
+      "style": {
+        "background": "from-blue-500 to-indigo-600",
+        "textColor": "white"
+      },
+      "action": {
+        "text": "Details",
+        "link": "/navigation"
+      }
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-10-08T08:25:14.618Z",
+    "version": "1.0",
+    "updatedBy": "admin-interface"
+  }
+}

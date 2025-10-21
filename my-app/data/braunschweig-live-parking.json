@@ -1,0 +1,181 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.515398, 52.261492]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH004",
+        "name": "Parkhaus Eiermarkt",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_60.svg\"> 61% konstant",
+        "id": "260583a8ec2a844d75e7e87fbcf34f511def72",
+        "openingState": "open",
+        "occupancy": 155,
+        "occupancyRate": 61,
+        "subTypes": ["shortterm"],
+        "capacity": 255,
+        "free": 100,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "100 freie Plätze",
+        "title": "Parkhaus Eiermarkt"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.518574, 52.266929]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH010",
+        "name": "Parkhaus Lange Str. Nord",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/increasing_40.svg\"> 45% steigend",
+        "id": "260582923b16ef630dec8f4fb962b4ce6cb496",
+        "openingState": "open",
+        "occupancy": 68,
+        "occupancyRate": 45,
+        "subTypes": ["shortterm", "longterm"],
+        "capacity": 150,
+        "free": 82,
+        "trend": "increasing",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "82 freie Plätze",
+        "title": "Parkhaus Lange Str. Nord"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.518295, 52.266286]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH005",
+        "name": "Parkhaus Lange Str. Süd",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_60.svg\"> 63% konstant",
+        "id": "260581118139e5c1a201ea5b1b246ffa968e48",
+        "openingState": "open",
+        "occupancy": 96,
+        "occupancyRate": 63,
+        "subTypes": ["shortterm"],
+        "capacity": 152,
+        "free": 56,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "56 freie Plätze",
+        "title": "Parkhaus Lange Str. Süd"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.526942, 52.262162]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH001",
+        "name": "Parkhaus Magni",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_100.svg\"> 100% konstant",
+        "id": "260580545b579289a753ed8df68f5836cf4660",
+        "openingState": "open",
+        "occupancy": 420,
+        "occupancyRate": 100,
+        "subTypes": ["shortterm", "longterm"],
+        "capacity": 420,
+        "free": 0,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "0 freie Plätze",
+        "title": "Parkhaus Magni"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.519732, 52.263712]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH006",
+        "name": "Parkhaus Schützenstraße",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_30.svg\"> 34% konstant",
+        "id": "2605777968bad04ded157645d42b38f724b768",
+        "openingState": "open",
+        "occupancy": 126,
+        "occupancyRate": 34,
+        "subTypes": ["shortterm"],
+        "capacity": 366,
+        "free": 240,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "240 freie Plätze",
+        "title": "Parkhaus Schützenstraße"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.521428, 52.259903]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH003",
+        "name": "Parkhaus Wallstraße",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_20.svg\"> 29% konstant",
+        "id": "2605746bb89be6a273733da7500ae43fb6f846",
+        "openingState": "open",
+        "occupancy": 130,
+        "occupancyRate": 29,
+        "subTypes": ["shortterm", "longterm"],
+        "capacity": 455,
+        "free": 325,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "325 freie Plätze",
+        "title": "Parkhaus Wallstraße"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.528208, 52.266627]
+      },
+      "properties": {
+        "mapsightIconId": "parkhaus",
+        "type": "parking",
+        "externalId": "PH002",
+        "name": "Parkhaus Wilhelmstraße",
+        "listInformation": "<img src=\"/WEB-IES/braunschweig-module/current/img/parking-dynamic/constant_70.svg\"> 75% konstant",
+        "id": "2605738403e1fb4ed39c346686abcae51d76a2",
+        "openingState": "open",
+        "occupancy": 395,
+        "occupancyRate": 75,
+        "subTypes": ["shortterm"],
+        "capacity": 530,
+        "free": 135,
+        "trend": "constant",
+        "timestamp": "2025-09-30T14:42:01+02:00",
+        "tooltip": "135 freie Plätze",
+        "title": "Parkhaus Wilhelmstraße"
+      }
+    }
+  ],
+  "buildTimestamp": "2025-09-30T14:42:01+0200"
+}
