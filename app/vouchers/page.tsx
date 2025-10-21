@@ -1,1424 +1,395 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
-import Image from 'next/image';
-import { 
-  ArrowLeft, Navigation, MapPin, Search, Star, 
-  Clock, Compass, Eye, Target, Route, Car, 
-  Bike, Users, Coffee, ShoppingBag, Camera,
-  Home, Gift, User, Zap, Info, Heart, Share2,
-  Navigation2, Crosshair, Volume2, VolumeX, Phone,
-  MessageCircle, Layers, Satellite, Map,
-  AlertTriangle, CheckCircle, XCircle,
-  TrendingUp, Award, Crown, Settings, Bell,
-  Calendar, Bookmark, History, Filter, SortAsc,
-  ChevronDown, ChevronUp, MoreVertical, Play,
-  Pause, RotateCcw, Maximize2, X, Ticket,
-  Music, Theater, Gamepad2, Wine, Palette,
-  TreePine, BookOpen, Building, Utensils,
-  CalendarDays, ExternalLink, Download,
-  Clock3, Euro, PartyPopper, MapPinIcon,
-  Percent, Tag, Flame, Sparkles, Trophy,
-  ArrowRight, QrCode, Repeat, ShoppingCart,
-  Handshake, Target as TargetIcon, Lightbulb,
-  TrendingDown, ChevronRight, BadgeCheck,
-  Store, Palette as PaletteIcon, Coffee as CoffeeIcon,
-  Scissors, Car as CarIcon, Gamepad, Shirt,
-  Book, Monitor, Sofa, Sparkle
-} from 'lucide-react';
+import { useState, useMemo } from 'react';
 
-// Types
-interface Store {
-  id: string;
+interface Handler {
+  id: number;
   name: string;
-  category: 'gallery' | 'bookstore' | 'fashion' | 'electronics' | 'furniture' | 'restaurant' | 'cafe' | 'wellness' | 'entertainment' | 'service';
-  address: string;
-  image: string;
-  logo: string;
-  rating: number;
-  isPartner: boolean;
-  partnerLevel: 'bronze' | 'silver' | 'gold' | 'premium';
+  lat: number;
+  lng: number;
+  website: string;
+  adresse?: string;
+  oeffnungszeiten?: string;
 }
 
-interface CrossSellingRule {
-  id: string;
-  triggerStoreId: string;
-  targetStoreId: string;
-  minPurchaseAmount: number;
-  voucherValue: number;
-  voucherType: 'fixed' | 'percentage';
-  validityDays: number;
-  category: 'culture-food' | 'shopping-service' | 'theme-package' | 'premium-experience';
-  description: string;
-  isActive: boolean;
-}
+const haendlerData: Handler[] = [
+  { id: 1949, name: "Braunschweig Stadtmarketing GmbH", lat: 52.264863, lng: 10.521881512988276, website: "https://deinportal.de/handler/1949", adresse: "Vor der Burg 1, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 9:00-18:00\nSa: 10:00-16:00" },
+  { id: 1950, name: "Café BRUNS vom Verein BRUNS e.V.", lat: 52.2601159, lng: 10.517245510338103, website: "https://deinportal.de/handler/1950", adresse: "Magnitorwall 16, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 8:00-18:00\nSa-So: 9:00-17:00" },
+  { id: 1951, name: "Soldekk / IVBB GmbH", lat: 52.2607916, lng: 10.5176888, website: "https://deinportal.de/handler/1951", adresse: "Magnitorwall, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 10:00-19:00\nSa: 10:00-18:00" },
+  { id: 1952, name: "Touristinfo Braunschweig", lat: 52.2637603, lng: 10.5222665, website: "https://deinportal.de/handler/1952", adresse: "Kleine Burg 14, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 10:00-18:00\nSa: 10:00-16:00\nSo: Geschlossen" },
+  { id: 1953, name: "Galerie Thomas Kaphammel", lat: 52.2615862, lng: 10.519468, website: "https://deinportal.de/handler/1953", adresse: "Magnitorwall, 38100 Braunschweig", oeffnungszeiten: "Di-Fr: 11:00-18:00\nSa: 11:00-16:00" },
+  { id: 1954, name: "Augenoptik Winter GmbH", lat: 52.2641902, lng: 10.522466225159674, website: "https://deinportal.de/handler/1954", adresse: "Hutfiltern 5, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 9:00-18:30\nSa: 9:00-14:00" },
+  { id: 1955, name: "Summersby- Langerfeldt Haus", lat: 52.264863, lng: 10.521881512988276, website: "https://deinportal.de/handler/1955", adresse: "Vor der Burg, 38100 Braunschweig", oeffnungszeiten: "Mo-Sa: 10:00-20:00" },
+  { id: 1957, name: "Yoga Ambiente", lat: 52.2618703, lng: 10.530026662157077, website: "https://deinportal.de/handler/1957", adresse: "Wilhelmstraße 42, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 8:00-21:00\nSa-So: 9:00-18:00" },
+  { id: 1959, name: "Städtisches Museum Braunschweig", lat: 52.2615729, lng: 10.5327414, website: "https://deinportal.de/handler/1959", adresse: "Haus am Löwenwall, 38100 Braunschweig", oeffnungszeiten: "Di-So: 10:00-17:00\nMo: Geschlossen" },
+  { id: 1961, name: "Trauringstudio Braunschweig", lat: 52.262093, lng: 10.5277907, website: "https://deinportal.de/handler/1961", adresse: "Schuhstraße 8, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 10:00-18:00\nSa: 10:00-16:00" },
+  { id: 1963, name: "Lüttes", lat: 52.2684776, lng: 10.519440650000004, website: "https://deinportal.de/handler/1963" },
+  { id: 1965, name: "Royal Flowers", lat: 52.2632041, lng: 10.52033487451735, website: "https://deinportal.de/handler/1965" },
+  { id: 1966, name: "Summersby - Schloss Arkaden", lat: 52.265102150000004, lng: 10.528141999999999, website: "https://deinportal.de/handler/1966" },
+  { id: 1967, name: "Studio Q1", lat: 52.2790533, lng: 10.5577544, website: "https://deinportal.de/handler/1967" },
+  { id: 1968, name: "Boutique Birkenstock", lat: 52.2640321, lng: 10.5254509, website: "https://deinportal.de/handler/1968" },
+  { id: 1971, name: "Zea Bar & Bistro", lat: 52.2681037, lng: 10.518117, website: "https://deinportal.de/handler/1971" },
+  { id: 1973, name: "Hidden in Braunschweig - The live Escape Game", lat: 52.258938549999996, lng: 10.511424518981864, website: "https://deinportal.de/handler/1973" },
+  { id: 1974, name: "Heimatrausch", lat: 52.2629184, lng: 10.5250362, website: "https://deinportal.de/handler/1974" },
+  { id: 1977, name: "Vielharmonie", lat: 52.261488549999996, lng: 10.518557004551468, website: "https://deinportal.de/handler/1977" },
+  { id: 1979, name: "Jens Koch", lat: 52.262787450000005, lng: 10.519622035497342, website: "https://deinportal.de/handler/1979" },
+  { id: 1980, name: "bücherwurm - Bücher für Kinder und Erwachsene", lat: 52.26165399999999, lng: 10.528918613527203, website: "https://deinportal.de/handler/1980" },
+  { id: 1983, name: "Pfankuch Buch GmbH", lat: 52.2643875, lng: 10.52310645180494, website: "https://deinportal.de/handler/1983", adresse: "Sack 17, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 9:30-19:00\nSa: 9:30-18:00" },
+  { id: 1984, name: "Galerie Jaeschke GmbH", lat: 52.2639212, lng: 10.521575, website: "https://deinportal.de/handler/1984", adresse: "Schuhstraße 21, 38100 Braunschweig", oeffnungszeiten: "Di-Fr: 10:00-18:00\nSa: 10:00-14:00" },
+  { id: 1985, name: "Holiday womenswear", lat: 52.2630272, lng: 10.5193562, website: "https://deinportal.de/handler/1985", adresse: "Schuhstraße 34, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 10:00-18:30\nSa: 10:00-18:00" },
+  { id: 1986, name: "FOTO HAAS GmbH", lat: 52.2626419, lng: 10.5235303, website: "https://deinportal.de/handler/1986", adresse: "Schuhstraße 2, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 9:00-18:30\nSa: 9:00-16:00" },
+  { id: 1987, name: "HAHNE - FAHRRAD GmbH & Co. KG", lat: 52.26609045, lng: 10.519616511508076, website: "https://deinportal.de/handler/1987", adresse: "Steinweg 38, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 9:00-18:30\nSa: 9:00-16:00" },
+  { id: 1989, name: "F. Niemeyer Augenoptik GmbH", lat: 52.26173905, lng: 10.527438298049429, website: "https://deinportal.de/handler/1989" },
+  { id: 1990, name: "Lillefits", lat: 52.2650554, lng: 10.5280642, website: "https://deinportal.de/handler/1990" },
+  { id: 1991, name: "Möbel Sander GmbH", lat: 52.2656596, lng: 10.5170866, website: "https://deinportal.de/handler/1991" },
+  { id: 1992, name: "SVANEKE fæshion", lat: 52.2630272, lng: 10.5193562, website: "https://deinportal.de/handler/1992" },
+  { id: 1993, name: "Argo Mieder und Wäsche", lat: 52.264468300000004, lng: 10.520263926494145, website: "https://deinportal.de/handler/1993" },
+  { id: 1994, name: "Loose-Schuhe", lat: 52.26435995, lng: 10.522340318524673, website: "https://deinportal.de/handler/1994" },
+  { id: 1995, name: "Freya", lat: 52.2643875, lng: 10.52310645180494, website: "https://deinportal.de/handler/1995" },
+  { id: 1996, name: "WEISS | Schreiben&Schenken", lat: 52.26489643918344, lng: 10.521489873774097, website: "https://deinportal.de/handler/1996" },
+  { id: 1997, name: "Jojeco Shoes, Concept, Outlet, Secondhand Store", lat: 52.2617247, lng: 10.52844440780142, website: "https://deinportal.de/handler/1997" },
+  { id: 1998, name: "Jojeco Fairfashion Store", lat: 52.26178035, lng: 10.52923411264333, website: "https://deinportal.de/handler/1998" },
+  { id: 1999, name: "Penta Hotel Braunschweig", lat: 52.2598345, lng: 10.527066275593718, website: "https://deinportal.de/handler/1999", adresse: "Berliner Platz 3, 38102 Braunschweig", oeffnungszeiten: "24/7 geöffnet\nRezeption immer besetzt" },
+  { id: 2001, name: "Akzente", lat: 52.27190865, lng: 10.54409700036078, website: "https://deinportal.de/handler/2001" },
+  { id: 2002, name: "BS|ENERGY", lat: 52.262784100000005, lng: 10.52552883859187, website: "https://deinportal.de/handler/2002" },
+  { id: 2004, name: "Bungenstock Juwelier GmbH", lat: 52.26277985, lng: 10.520137800867452, website: "https://deinportal.de/handler/2004" },
+  { id: 2006, name: "Buchhandlung Graff GmbH", lat: 52.26512955, lng: 10.521744011770672, website: "https://deinportal.de/handler/2006" },
+  { id: 2007, name: "National Jürgens Brauerei GmbH", lat: 52.2766152, lng: 10.5302112, website: "https://deinportal.de/handler/2007" },
+  { id: 2008, name: "apotheca Sack", lat: 52.26505, lng: 10.52110871492659, website: "https://deinportal.de/handler/2008", adresse: "Sack 8, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 8:00-19:00\nSa: 9:00-14:00" },
+  { id: 2009, name: "Hagenmarkt Apotheke", lat: 52.2678332, lng: 10.5243402, website: "https://deinportal.de/handler/2009", adresse: "Hagenmarkt 20, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 8:00-18:30\nSa: 9:00-13:00" },
+  { id: 2010, name: "Altstadtmarkt Apotheke", lat: 52.262804, lng: 10.518243, website: "https://deinportal.de/handler/2010", adresse: "Altstadtmarkt 9, 38100 Braunschweig", oeffnungszeiten: "Mo-Fr: 8:30-18:30\nSa: 9:00-14:00" },
+  { id: 2018, name: "Ulrici Apotheke", lat: 52.2641858, lng: 10.520999962137012, website: "https://deinportal.de/handler/2018" },
+  { id: 2020, name: "Garten­Center Nordharz GmbH & Co. KG", lat: 52.2430825, lng: 10.513020672242055, website: "https://deinportal.de/handler/2020" },
+  { id: 2021, name: "Braunschweig Stadtmarketing GmbH", lat: 52.264863, lng: 10.521881512988276, website: "https://deinportal.de/handler/2021" },
+  { id: 2022, name: "VirtuaLounge", lat: 52.2640902, lng: 10.5225241, website: "https://deinportal.de/handler/2022" },
+  { id: 2024, name: "Braunschweiger Verkehrs­GmbH (BSVG)", lat: 52.2644377, lng: 10.526105417241379, website: "https://deinportal.de/handler/2024" },
+  { id: 2025, name: "Bohlweg­Apotheke OHG", lat: 52.2647858, lng: 10.52657, website: "https://deinportal.de/handler/2025" },
+  { id: 2026, name: "Volkshochschule Braunschweig", lat: 52.2675894, lng: 10.519841871172101, website: "https://deinportal.de/handler/2026" },
+  { id: 2027, name: "Haus der Familie Braunschweig", lat: 52.268758399999996, lng: 10.520293550909203, website: "https://deinportal.de/handler/2027" },
+  { id: 2030, name: "David Men & Women", lat: 52.2620814, lng: 10.52063169601718, website: "https://deinportal.de/handler/2030" },
+  { id: 2031, name: "Magniküche", lat: 52.26367285, lng: 10.518898435117492, website: "https://deinportal.de/handler/2031" },
+  { id: 2034, name: "Rebmann Maßkleidung", lat: 52.2559916, lng: 10.514598196393642, website: "https://deinportal.de/handler/2034" },
+  { id: 2751, name: "Brinckmann & Lange", lat: 52.26278405, lng: 10.520000823129056, website: "https://deinportal.de/handler/2751" },
+  { id: 2986, name: "zalü concept store", lat: 52.2635956, lng: 10.5190797, website: "https://deinportal.de/handler/2986" },
+  { id: 3018, name: "Brettspiel Eck", lat: 52.2686789, lng: 10.5283423, website: "https://deinportal.de/handler/3018" }
+];
 
-interface Voucher {
-  id: string;
-  title: string;
-  description: string;
-  store: Store;
-  value: number;
-  type: 'fixed' | 'percentage';
-  category: 'food' | 'shopping' | 'wellness' | 'entertainment' | 'service' | 'cross-selling';
-  image: string;
-  validUntil: Date;
-  minPurchase?: number;
-  usageLimit?: number;
-  usageCount: number;
-  isUsed: boolean;
-  isExpired: boolean;
-  isFavorite: boolean;
-  qrCode: string;
-  terms: string[];
+// Helper function to get category based on business name
+function getCategory(name: string): { label: string; color: string } {
+  const nameLower = name.toLowerCase();
   
-  // Cross-Selling specific
-  sourceTransaction?: {
-    storeId: string;
-    storeName: string;
-    amount: number;
-    date: Date;
-  };
-  crossSellingRuleId?: string;
-  discoveryBonus?: boolean;
-  streakBonus?: number;
+  if (nameLower.includes('apotheke')) return { label: 'Apotheke', color: 'bg-red-100 text-red-700' };
+  if (nameLower.includes('café') || nameLower.includes('cafe') || nameLower.includes('bar') || nameLower.includes('bistro') || nameLower.includes('küche')) return { label: 'Gastronomie', color: 'bg-orange-100 text-orange-700' };
+  if (nameLower.includes('hotel')) return { label: 'Hotel', color: 'bg-purple-100 text-purple-700' };
+  if (nameLower.includes('museum') || nameLower.includes('galerie')) return { label: 'Kultur', color: 'bg-pink-100 text-pink-700' };
+  if (nameLower.includes('buch') || nameLower.includes('bücher')) return { label: 'Buchhandlung', color: 'bg-blue-100 text-blue-700' };
+  if (nameLower.includes('optik') || nameLower.includes('augen')) return { label: 'Optiker', color: 'bg-cyan-100 text-cyan-700' };
+  if (nameLower.includes('juwel') || nameLower.includes('trauringstudio')) return { label: 'Schmuck', color: 'bg-yellow-100 text-yellow-700' };
+  if (nameLower.includes('foto')) return { label: 'Fotografie', color: 'bg-indigo-100 text-indigo-700' };
+  if (nameLower.includes('fahrrad')) return { label: 'Fahrrad', color: 'bg-green-100 text-green-700' };
+  if (nameLower.includes('möbel')) return { label: 'Möbel', color: 'bg-amber-100 text-amber-700' };
+  if (nameLower.includes('schuhe') || nameLower.includes('shoes')) return { label: 'Schuhe', color: 'bg-slate-100 text-slate-700' };
+  if (nameLower.includes('yoga') || nameLower.includes('wellness')) return { label: 'Wellness', color: 'bg-emerald-100 text-emerald-700' };
+  if (nameLower.includes('brauerei')) return { label: 'Brauerei', color: 'bg-amber-100 text-amber-800' };
+  if (nameLower.includes('vhs') || nameLower.includes('volkshochschule') || nameLower.includes('familie')) return { label: 'Bildung', color: 'bg-teal-100 text-teal-700' };
+  if (nameLower.includes('verkehr') || nameLower.includes('bsvg')) return { label: 'Verkehr', color: 'bg-lime-100 text-lime-700' };
+  if (nameLower.includes('garten')) return { label: 'Garten', color: 'bg-green-100 text-green-700' };
+  if (nameLower.includes('escape') || nameLower.includes('virtuallounge') || nameLower.includes('brettspiel')) return { label: 'Entertainment', color: 'bg-fuchsia-100 text-fuchsia-700' };
+  if (nameLower.includes('touristinfo') || nameLower.includes('stadtmarketing')) return { label: 'Tourismus', color: 'bg-sky-100 text-sky-700' };
+  if (nameLower.includes('fashion') || nameLower.includes('boutique') || nameLower.includes('womenswear') || nameLower.includes('men') || nameLower.includes('wäsche') || nameLower.includes('maßkleidung')) return { label: 'Mode', color: 'bg-rose-100 text-rose-700' };
+  
+  return { label: 'Einzelhandel', color: 'bg-gray-100 text-gray-700' };
 }
 
-interface UserProgress {
-  totalPurchases: number;
-  partnersVisited: string[];
-  currentStreak: number;
-  maxStreak: number;
-  loyaltyLevel: 'newcomer' | 'explorer' | 'regular' | 'vip' | 'champion';
-  discoveryScore: number;
-  monthlyChallenge?: {
-    target: number;
-    current: number;
-    reward: string;
-  };
-}
+export default function VouchersPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
+  const [selectedHandler, setSelectedHandler] = useState<Handler | null>(null);
 
-const VouchersPage = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Alle');
-  const [currentView, setCurrentView] = useState<'my-vouchers' | 'discover' | 'partnerships' | 'challenges'>('my-vouchers');
-  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [favoriteVouchers, setFavoriteVouchers] = useState<string[]>(['restaurant-bonus', 'cafe-crosssell']);
-  const [userLocation] = useState({ lat: 52.2625, lng: 10.5211 });
-  const [showPartnershipDetails, setShowPartnershipDetails] = useState(false);
-  const [selectedPartnership, setSelectedPartnership] = useState<CrossSellingRule | null>(null);
-
-  // Mock User Progress
-  const [userProgress] = useState<UserProgress>({
-    totalPurchases: 1250,
-    partnersVisited: ['galerie-moderne', 'buchhandlung-wagner', 'cafe-central', 'restaurant-italiano'],
-    currentStreak: 5,
-    maxStreak: 8,
-    loyaltyLevel: 'regular',
-    discoveryScore: 340,
-    monthlyChallenge: {
-      target: 5,
-      current: 3,
-      reward: '20€ Premium-Gutschein'
-    }
-  });
-
-  // Mock Stores Data
-  const stores = useMemo<Store[]>(() => [
-    {
-      id: 'galerie-moderne',
-      name: 'Galerie Moderne',
-      category: 'gallery',
-      address: 'Bohlweg 42, 38100 Braunschweig',
-      image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=300&fit=crop',
-      logo: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=100&h=100&fit=crop',
-      rating: 4.8,
-      isPartner: true,
-      partnerLevel: 'gold'
-    },
-    {
-      id: 'buchhandlung-wagner',
-      name: 'Buchhandlung Wagner',
-      category: 'bookstore',
-      address: 'Damm 21, 38100 Braunschweig',
-      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop',
-      logo: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop',
-      rating: 4.6,
-      isPartner: true,
-      partnerLevel: 'silver'
-    },
-    {
-      id: 'restaurant-italiano',
-      name: 'Ristorante Italiano',
-      category: 'restaurant',
-      address: 'Kohlmarkt 5, 38100 Braunschweig',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-      logo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop',
-      rating: 4.7,
-      isPartner: true,
-      partnerLevel: 'premium'
-    },
-    {
-      id: 'cafe-central',
-      name: 'Café Central',
-      category: 'cafe',
-      address: 'Burgplatz 1, 38100 Braunschweig',
-      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
-      logo: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop',
-      rating: 4.5,
-      isPartner: true,
-      partnerLevel: 'bronze'
-    }
-  ], []);
-
-  // Mock Cross-Selling Rules
-  const crossSellingRules = useMemo<CrossSellingRule[]>(() => [
-    {
-      id: 'gallery-to-restaurant',
-      triggerStoreId: 'galerie-moderne',
-      targetStoreId: 'restaurant-italiano',
-      minPurchaseAmount: 100,
-      voucherValue: 10,
-      voucherType: 'fixed',
-      validityDays: 30,
-      category: 'culture-food',
-      description: 'Kunst genießen → Kulinarik erleben',
-      isActive: true
-    },
-    {
-      id: 'bookstore-to-cafe',
-      triggerStoreId: 'buchhandlung-wagner',
-      targetStoreId: 'cafe-central',
-      minPurchaseAmount: 25,
-      voucherValue: 15,
-      voucherType: 'percentage',
-      validityDays: 14,
-      category: 'culture-food',
-      description: 'Lesen → Entspannen',
-      isActive: true
-    },
-    {
-      id: 'restaurant-to-gallery',
-      triggerStoreId: 'restaurant-italiano',
-      targetStoreId: 'galerie-moderne',
-      minPurchaseAmount: 50,
-      voucherValue: 20,
-      voucherType: 'percentage',
-      validityDays: 30,
-      category: 'premium-experience',
-      description: 'Genuss → Kultur',
-      isActive: true
-    }
-  ], []);
-
-  // Mock Vouchers with Cross-Selling
-  const vouchers = useMemo<Voucher[]>(() => [
-    {
-      id: 'restaurant-bonus',
-      title: '10€ Bonus bei Ristorante Italiano',
-      description: 'Erhalten durch Kunstkauf in der Galerie Moderne',
-      store: stores.find(s => s.id === 'restaurant-italiano')!,
-      value: 10,
-      type: 'fixed',
-      category: 'cross-selling',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      minPurchase: 20,
-      usageLimit: 1,
-      usageCount: 0,
-      isUsed: false,
-      isExpired: false,
-      isFavorite: true,
-      qrCode: 'QR123456789',
-      terms: ['Nicht mit anderen Aktionen kombinierbar', 'Gültig bis 30 Tage nach Erhalt'],
-      sourceTransaction: {
-        storeId: 'galerie-moderne',
-        storeName: 'Galerie Moderne',
-        amount: 150,
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-      },
-      crossSellingRuleId: 'gallery-to-restaurant',
-      discoveryBonus: true
-    },
-    {
-      id: 'cafe-crosssell',
-      title: '15% Rabatt im Café Central',
-      description: 'Erhalten durch Buchkauf bei Wagner',
-      store: stores.find(s => s.id === 'cafe-central')!,
-      value: 15,
-      type: 'percentage',
-      category: 'cross-selling',
-      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
-      validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      usageLimit: 1,
-      usageCount: 0,
-      isUsed: false,
-      isExpired: false,
-      isFavorite: true,
-      qrCode: 'QR987654321',
-      terms: ['Mindestbestellwert 8€', 'Nur für Getränke gültig'],
-      sourceTransaction: {
-        storeId: 'buchhandlung-wagner',
-        storeName: 'Buchhandlung Wagner',
-        amount: 35,
-        date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-      },
-      crossSellingRuleId: 'bookstore-to-cafe',
-      streakBonus: 5
-    },
-    {
-      id: 'wellness-regular',
-      title: '20% Rabatt Wellness Center',
-      description: 'Entspannung für Körper und Geist',
-      store: {
-        id: 'wellness-center',
-        name: 'Wellness Center Braunschweig',
-        category: 'wellness',
-        address: 'Wellnessstraße 10',
-        image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-        logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=100&h=100&fit=crop',
-        rating: 4.4,
-        isPartner: false,
-        partnerLevel: 'bronze'
-      } as Store,
-      value: 20,
-      type: 'percentage',
-      category: 'wellness',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-      validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      minPurchase: 50,
-      usageLimit: 1,
-      usageCount: 0,
-      isUsed: false,
-      isExpired: false,
-      isFavorite: false,
-      qrCode: 'QR555666777',
-      terms: ['Nur für Massagen gültig', 'Voranmeldung erforderlich']
-    }
-  ], [stores]);
-
-  // Filter vouchers
-  const filteredVouchers = useMemo(() => {
-    let filtered = vouchers;
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(voucher =>
-        voucher.title.toLowerCase().includes(query) ||
-        voucher.description.toLowerCase().includes(query) ||
-        voucher.store.name.toLowerCase().includes(query)
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'Alle') {
-      const categoryMap: { [key: string]: string } = {
-        'Cross-Selling': 'cross-selling',
-        'Restaurants': 'food',
-        'Shopping': 'shopping',
-        'Wellness': 'wellness',
-        'Entertainment': 'entertainment'
-      };
-      const mappedCategory = categoryMap[selectedCategory];
-      if (mappedCategory) {
-        filtered = filtered.filter(voucher => voucher.category === mappedCategory);
-      }
-    }
-
-    return filtered;
-  }, [vouchers, searchQuery, selectedCategory]);
-
-  const categories = ['Alle', 'Cross-Selling', 'Restaurants', 'Shopping', 'Wellness', 'Entertainment'];
-
-  // Helper functions
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'cross-selling': return <Handshake className="w-4 h-4" />;
-      case 'food': return <Utensils className="w-4 h-4" />;
-      case 'shopping': return <ShoppingBag className="w-4 h-4" />;
-      case 'wellness': return <Sparkles className="w-4 h-4" />;
-      case 'entertainment': return <Gamepad2 className="w-4 h-4" />;
-      case 'service': return <Settings className="w-4 h-4" />;
-      default: return <Gift className="w-4 h-4" />;
-    }
-  };
-
-  const getStoreIcon = (category: string) => {
-    switch (category) {
-      case 'gallery': return <PaletteIcon className="w-4 h-4" />;
-      case 'bookstore': return <Book className="w-4 h-4" />;
-      case 'restaurant': return <Utensils className="w-4 h-4" />;
-      case 'cafe': return <CoffeeIcon className="w-4 h-4" />;
-      case 'fashion': return <Shirt className="w-4 h-4" />;
-      case 'electronics': return <Monitor className="w-4 h-4" />;
-      case 'furniture': return <Sofa className="w-4 h-4" />;
-      case 'wellness': return <Sparkles className="w-4 h-4" />;
-      case 'entertainment': return <Gamepad className="w-4 h-4" />;
-      case 'service': return <Settings className="w-4 h-4" />;
-      default: return <Store className="w-4 h-4" />;
-    }
-  };
-
-  const getPartnerLevelBadge = (level: string) => {
-    switch (level) {
-      case 'premium': return { color: 'bg-purple-500', text: 'Premium', icon: <Crown className="w-3 h-3" /> };
-      case 'gold': return { color: 'bg-yellow-500', text: 'Gold', icon: <Award className="w-3 h-3" /> };
-      case 'silver': return { color: 'bg-gray-400', text: 'Silver', icon: <Trophy className="w-3 h-3" /> };
-      case 'bronze': return { color: 'bg-amber-600', text: 'Bronze', icon: <BadgeCheck className="w-3 h-3" /> };
-      default: return { color: 'bg-gray-300', text: 'Partner', icon: <Handshake className="w-3 h-3" /> };
-    }
-  };
-
-  const getLoyaltyLevelInfo = (level: string) => {
-    switch (level) {
-      case 'champion': return { color: 'text-purple-600', bg: 'bg-purple-100', icon: <Crown className="w-4 h-4" /> };
-      case 'vip': return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: <Award className="w-4 h-4" /> };
-      case 'regular': return { color: 'text-blue-600', bg: 'bg-blue-100', icon: <Trophy className="w-4 h-4" /> };
-      case 'explorer': return { color: 'text-green-600', bg: 'bg-green-100', icon: <Compass className="w-4 h-4" /> };
-      default: return { color: 'text-gray-600', bg: 'bg-gray-100', icon: <User className="w-4 h-4" /> };
-    }
-  };
-
-  const formatTimeLeft = (date: Date) => {
-    const now = new Date();
-    const diff = date.getTime() - now.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days < 0) return 'Abgelaufen';
-    if (days === 0) return 'Läuft heute ab';
-    if (days === 1) return 'Läuft morgen ab';
-    return `${days} Tage gültig`;
-  };
-
-  const toggleFavorite = useCallback((voucherId: string) => {
-    setFavoriteVouchers(prev =>
-      prev.includes(voucherId)
-        ? prev.filter(id => id !== voucherId)
-        : [...prev, voucherId]
-    );
+  // Get unique categories
+  const categories = useMemo(() => {
+    const cats = new Set(haendlerData.map(h => getCategory(h.name).label));
+    return ['Alle', ...Array.from(cats).sort()];
   }, []);
 
-  // Components
+  // Filter handlers
+  const filteredHandlers = useMemo(() => {
+    return haendlerData.filter(handler => {
+      const matchesSearch = handler.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const category = getCategory(handler.name);
+      const matchesCategory = selectedCategory === 'Alle' || category.label === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchTerm, selectedCategory]);
 
-  const SearchAndFilter: React.FC = () => (
-    <div className="bg-white border-b border-gray-200 p-4">
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Gutscheine suchen..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-        />
-      </div>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen relative">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/" className="p-2 hover:bg-blue-700 rounded-lg transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </Link>
+            <h1 className="text-xl font-bold">Gutschein-Partner</h1>
+            <div className="w-10 h-10"></div> {/* Spacer */}
+          </div>
 
-      {/* Categories */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-3 py-1 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-              selectedCategory === category
-                ? 'bg-pink-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const ViewSelector: React.FC = () => (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
-      <div className="flex justify-around">
-        {[
-          { view: 'my-vouchers', icon: Gift, label: 'Meine', active: currentView === 'my-vouchers' },
-          { view: 'discover', icon: Compass, label: 'Entdecken', active: currentView === 'discover' },
-          { view: 'partnerships', icon: Handshake, label: 'Partner', active: currentView === 'partnerships' },
-          { view: 'challenges', icon: TargetIcon, label: 'Challenges', active: currentView === 'challenges' }
-        ].map(({ view, icon: Icon, label, active }) => (
-          <button
-            key={view}
-            onClick={() => setCurrentView(view as any)}
-            className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-              active 
-                ? 'text-pink-500 bg-pink-50' 
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            <Icon className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">{label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const UserProgressCard: React.FC = () => {
-    const loyaltyInfo = getLoyaltyLevelInfo(userProgress.loyaltyLevel);
-    
-    return (
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-full bg-white/20`}>
-              {loyaltyInfo.icon}
-            </div>
-            <div>
-              <h3 className="font-bold">Status: {userProgress.loyaltyLevel}</h3>
-              <p className="text-sm opacity-90">{userProgress.discoveryScore} Discovery Punkte</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-bold">{userProgress.currentStreak}</div>
-            <div className="text-xs opacity-90">Streak</div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-lg font-bold">{userProgress.partnersVisited.length}</div>
-            <div className="text-xs opacity-90">Partner besucht</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold">{userProgress.totalPurchases}€</div>
-            <div className="text-xs opacity-90">Gesamtumsatz</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold">{userProgress.maxStreak}</div>
-            <div className="text-xs opacity-90">Bester Streak</div>
+          {/* Search Bar */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Partner suchen..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-blue-500/30 border border-blue-400 rounded-xl placeholder-blue-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent"
+            />
           </div>
         </div>
 
-        {userProgress.monthlyChallenge && (
-          <div className="mt-3 p-3 bg-white/10 rounded-lg">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Monats-Challenge</span>
-              <span className="text-xs">{userProgress.monthlyChallenge.current}/{userProgress.monthlyChallenge.target}</span>
+        {/* Category Filter Tabs */}
+        <div className="bg-white border-b border-gray-200 px-4 pt-4">
+          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
+                  selectedCategory === cat
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="bg-white px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-semibold text-blue-600">{filteredHandlers.length}</span>
+            <span className="text-gray-600">von {haendlerData.length} Partnern</span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto">
+          {/* Empty State */}
+          {filteredHandlers.length === 0 && (
+            <div className="p-8 text-center">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-gray-500 text-lg font-medium">Keine Partner gefunden</p>
+              <p className="text-gray-400 text-sm mt-2">Versuchen Sie andere Suchbegriffe</p>
             </div>
-            <div className="w-full bg-white/20 rounded-full h-2 mb-2">
-              <div 
-                className="bg-white rounded-full h-2 transition-all" 
-                style={{ width: `${(userProgress.monthlyChallenge.current / userProgress.monthlyChallenge.target) * 100}%` }}
-              ></div>
+          )}
+
+          {/* Handlers List */}
+          <div className="p-4 space-y-3">
+            {filteredHandlers.map((handler) => {
+              const category = getCategory(handler.name);
+              return (
+                <div 
+                  key={handler.id} 
+                  className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                >
+                  <div className="p-4">
+                    {/* Category Badge */}
+                    <div className="mb-2">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${category.color}`}>
+                        {category.label}
+                      </span>
+                    </div>
+                    
+                    {/* Name */}
+                    <h2 className="text-base font-bold text-gray-800 mb-2 line-clamp-2">
+                      {handler.name}
+                    </h2>
+                    
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="truncate">
+                        {handler.lat.toFixed(4)}, {handler.lng.toFixed(4)}
+                      </span>
+                    </div>
+                    
+                    {/* Button */}
+                    <button 
+                      onClick={() => setSelectedHandler(handler)}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg transition-colors duration-200 text-sm"
+                    >
+                      <span>Details anzeigen</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          {filteredHandlers.length > 0 && (
+            <div className="p-4 text-center text-gray-500 text-xs pb-8">
+              ✨ Alle teilnehmenden Partner im Überblick
             </div>
-            <p className="text-xs opacity-90">Belohnung: {userProgress.monthlyChallenge.reward}</p>
+          )}
+        </div>
+
+        {/* Bottom Navigation Spacer */}
+        <div className="h-20"></div>
+
+        {/* Detail Modal */}
+        {selectedHandler && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+            <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto animate-slide-up">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-2xl z-10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold">Partner Details</h2>
+                  <button 
+                    onClick={() => setSelectedHandler(null)}
+                    className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {/* Category Badge */}
+                <div>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getCategory(selectedHandler.name).color}`}>
+                    {getCategory(selectedHandler.name).label}
+                  </span>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    {selectedHandler.name}
+                  </h3>
+                </div>
+
+                {/* Info Sections */}
+                <div className="space-y-4">
+                  {/* Address */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-800 mb-1">Adresse</h4>
+                        <p className="text-gray-600 text-sm">
+                          {selectedHandler.adresse || 'Keine Adresse verfügbar'}
+                        </p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {selectedHandler.lat.toFixed(6)}, {selectedHandler.lng.toFixed(6)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Opening Hours */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-green-100 p-2 rounded-lg">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-800 mb-1">Öffnungszeiten</h4>
+                        <p className="text-gray-600 text-sm whitespace-pre-line">
+                          {selectedHandler.oeffnungszeiten || 'Keine Öffnungszeiten verfügbar'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Website */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-purple-100 p-2 rounded-lg">
+                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-800 mb-1">Website</h4>
+                        <a 
+                          href={selectedHandler.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm underline break-all"
+                        >
+                          {selectedHandler.website}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3 pt-4">
+                  <a
+                    href={selectedHandler.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
+                  >
+                    <span>Website besuchen</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${selectedHandler.lat},${selectedHandler.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <span>In Karte öffnen</span>
+                  </a>
+                </div>
+
+                {/* ID Info */}
+                <div className="text-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+                  Partner ID: {selectedHandler.id}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
-    );
-  };
-
-  const VoucherCard: React.FC<{ voucher: Voucher; compact?: boolean }> = ({ voucher, compact = false }) => (
-    <div 
-      className={`bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all cursor-pointer ${
-        compact ? 'p-3' : 'p-4'
-      } ${voucher.isExpired ? 'opacity-50' : ''}`}
-      onClick={() => setSelectedVoucher(voucher)}
-    >
-      <div className="flex gap-3">
-        <div className={`relative rounded-lg overflow-hidden flex-shrink-0 ${
-          compact ? 'w-16 h-16' : 'w-20 h-20'
-        }`}>
-          <Image
-            src={voucher.image}
-            alt={voucher.title}
-            fill
-            className="object-cover"
-          />
-          <div className="absolute top-1 left-1">
-            {getCategoryIcon(voucher.category)}
-          </div>
-          {voucher.crossSellingRuleId && (
-            <div className="absolute bottom-1 right-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs p-1 rounded">
-              <Handshake className="w-3 h-3" />
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-1">
-            <h4 className={`font-semibold text-gray-800 line-clamp-2 ${compact ? 'text-sm' : 'text-base'}`}>
-              {voucher.title}
-            </h4>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(voucher.id);
-              }}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <Heart className={`w-4 h-4 ${favoriteVouchers.includes(voucher.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-            </button>
-          </div>
-
-          {!compact && voucher.sourceTransaction && (
-            <div className="flex items-center gap-1 text-xs text-pink-600 bg-pink-50 rounded-full px-2 py-1 mb-2 w-fit">
-              <Sparkle className="w-3 h-3" />
-              <span>Bonus von {voucher.sourceTransaction.storeName}</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-            <span className="font-bold text-pink-600">
-              {voucher.type === 'percentage' ? `${voucher.value}% Rabatt` : `${voucher.value}€ Gutschein`}
-            </span>
-            <span>•</span>
-            <span>{voucher.store.name}</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${
-                formatTimeLeft(voucher.validUntil).includes('Abgelaufen') 
-                  ? 'text-red-600' 
-                  : formatTimeLeft(voucher.validUntil).includes('heute')
-                    ? 'text-orange-600'
-                    : 'text-gray-600'
-              }`}>
-                {formatTimeLeft(voucher.validUntil)}
-              </span>
-              {voucher.discoveryBonus && (
-                <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-                  🎯 Discovery
-                </span>
-              )}
-              {voucher.streakBonus && (
-                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                  🔥 Streak +{voucher.streakBonus}
-                </span>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              {voucher.isUsed ? (
-                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-                  Verwendet
-                </span>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedVoucher(voucher);
-                    setShowQRCode(true);
-                  }}
-                  className="bg-pink-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-pink-600 transition-colors"
-                >
-                  Einlösen
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
-
-  const CrossSellingPartnershipCard: React.FC<{ rule: CrossSellingRule }> = ({ rule }) => {
-    const triggerStore = stores.find(s => s.id === rule.triggerStoreId);
-    const targetStore = stores.find(s => s.id === rule.targetStoreId);
-    
-    if (!triggerStore || !targetStore) return null;
-
-    return (
-      <div className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-all cursor-pointer"
-           onClick={() => {
-             setSelectedPartnership(rule);
-             setShowPartnershipDetails(true);
-           }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-gray-800">{rule.description}</h3>
-          <ChevronRight className="w-5 h-5 text-gray-400" />
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Trigger Store */}
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-10 h-10 rounded-lg overflow-hidden relative">
-              <Image src={triggerStore.logo} alt={triggerStore.name} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-800 truncate">{triggerStore.name}</div>
-              <div className="text-xs text-gray-600">ab {rule.minPurchaseAmount}€ Einkauf</div>
-            </div>
-          </div>
-
-          {/* Arrow */}
-          <ArrowRight className="w-5 h-5 text-pink-500" />
-
-          {/* Target Store */}
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-10 h-10 rounded-lg overflow-hidden relative">
-              <Image src={targetStore.logo} alt={targetStore.name} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-800 truncate">{targetStore.name}</div>
-              <div className="text-xs text-pink-600 font-medium">
-                {rule.voucherType === 'percentage' ? `${rule.voucherValue}% Rabatt` : `${rule.voucherValue}€ Bonus`}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-          <span>Gültig {rule.validityDays} Tage</span>
-          <span>•</span>
-          <span className="capitalize">{rule.category.replace('-', ' → ')}</span>
-        </div>
-      </div>
-    );
-  };
-
-  // Content Views
-  const MyVouchersView: React.FC = () => (
-    <div className="p-4 space-y-4 pb-24">
-      <UserProgressCard />
-
-      {/* Cross-Selling Vouchers */}
-      {filteredVouchers.filter(v => v.category === 'cross-selling').length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Handshake className="w-5 h-5 text-pink-500" />
-            <h3 className="text-lg font-bold text-gray-800">Cross-Selling Bonus</h3>
-            <span className="bg-pink-100 text-pink-800 text-xs px-2 py-1 rounded-full">
-              {filteredVouchers.filter(v => v.category === 'cross-selling').length}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {filteredVouchers.filter(v => v.category === 'cross-selling').map((voucher) => (
-              <VoucherCard key={voucher.id} voucher={voucher} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Regular Vouchers */}
-      {filteredVouchers.filter(v => v.category !== 'cross-selling').length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Gift className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-bold text-gray-800">Meine Gutscheine</h3>
-            <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-              {filteredVouchers.filter(v => v.category !== 'cross-selling').length}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {filteredVouchers.filter(v => v.category !== 'cross-selling').map((voucher) => (
-              <VoucherCard key={voucher.id} voucher={voucher} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {filteredVouchers.length === 0 && (
-        <div className="text-center py-12">
-          <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-600 mb-2">Keine Gutscheine gefunden</h4>
-          <p className="text-gray-500 mb-6">Entdecken Sie Angebote und sammeln Sie Gutscheine</p>
-          <button
-            onClick={() => setCurrentView('discover')}
-            className="bg-pink-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-pink-600 transition-colors"
-          >
-            Gutscheine entdecken
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  const DiscoverView: React.FC = () => (
-    <div className="p-4 space-y-6 pb-24">
-      {/* Featured Partnerships */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-5 h-5 text-yellow-500" />
-          <h3 className="text-lg font-bold text-gray-800">Aktuelle Aktionen</h3>
-        </div>
-        
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl p-4 mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Flame className="w-5 h-5" />
-            <h4 className="font-bold">Wochenend-Special</h4>
-          </div>
-          <p className="text-sm mb-3">Kaufen Sie Kunst für 100€+ und erhalten Sie 15€ Restaurant-Gutschein statt 10€!</p>
-          <div className="flex items-center gap-2 text-xs">
-            <Clock3 className="w-4 h-4" />
-            <span>Noch 2 Tage gültig</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Partner Stores */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Partner-Geschäfte</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {stores.filter(s => s.isPartner).map((store) => {
-            const badge = getPartnerLevelBadge(store.partnerLevel);
-            return (
-              <div key={store.id} className="bg-white rounded-xl shadow-md p-3 hover:shadow-lg transition-all">
-                <div className="relative w-full h-24 rounded-lg overflow-hidden mb-3">
-                  <Image src={store.image} alt={store.name} fill className="object-cover" />
-                  <div className={`absolute top-2 right-2 ${badge.color} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1`}>
-                    {badge.icon}
-                    <span>{badge.text}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  {getStoreIcon(store.category)}
-                  <h4 className="font-medium text-gray-800 text-sm truncate">{store.name}</h4>
-                </div>
-                <div className="flex items-center gap-1 mb-2">
-                  <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                  <span className="text-xs text-gray-600">{store.rating}</span>
-                </div>
-                <button className="w-full bg-pink-500 text-white text-xs py-2 rounded-lg hover:bg-pink-600 transition-colors">
-                  Details anzeigen
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* How it Works */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="text-lg font-bold text-gray-800 mb-3">So funktioniert's</h3>
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 bg-pink-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
-            <div>
-              <h4 className="font-medium text-gray-800">Einkaufen</h4>
-              <p className="text-sm text-gray-600">Kaufen Sie bei einem Partner-Geschäft ein</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 bg-pink-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
-            <div>
-              <h4 className="font-medium text-gray-800">QR-Code scannen</h4>
-              <p className="text-sm text-gray-600">Scannen Sie den QR-Code an der Kasse</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 bg-pink-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</div>
-            <div>
-              <h4 className="font-medium text-gray-800">Bonus erhalten</h4>
-              <p className="text-sm text-gray-600">Erhalten Sie automatisch Gutscheine für Partner-Geschäfte</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const PartnershipsView: React.FC = () => (
-    <div className="p-4 space-y-6 pb-24">
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Handshake className="w-6 h-6" />
-          <h2 className="text-lg font-bold">Cross-Selling Partnerschaften</h2>
-        </div>
-        <p className="text-sm opacity-90">Entdecken Sie, wie Ihre Einkäufe zu Bonusgutscheinen werden</p>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Aktive Partnerschaften</h3>
-        <div className="space-y-4">
-          {crossSellingRules.filter(r => r.isActive).map((rule) => (
-            <CrossSellingPartnershipCard key={rule.id} rule={rule} />
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-blue-50 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Lightbulb className="w-5 h-5 text-blue-500" />
-          <h3 className="font-bold text-gray-800">Tipp</h3>
-        </div>
-        <p className="text-sm text-gray-700">
-          Besuchen Sie verschiedene Partner-Kategorien, um Ihren Discovery-Score zu erhöhen und 
-          exklusive Bonus-Gutscheine freizuschalten!
-        </p>
-      </div>
-    </div>
-  );
-
-  const ChallengesView: React.FC = () => (
-    <div className="p-4 space-y-6 pb-24">
-      <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <TargetIcon className="w-6 h-6" />
-          <h2 className="text-lg font-bold">Challenges & Belohnungen</h2>
-        </div>
-        <p className="text-sm opacity-90">Erreichen Sie Ziele und verdienen Sie Extra-Gutscheine</p>
-      </div>
-
-      {/* Monthly Challenge */}
-      {userProgress.monthlyChallenge && (
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-800">Monats-Challenge</h3>
-            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-              {userProgress.monthlyChallenge.current}/{userProgress.monthlyChallenge.target}
-            </span>
-          </div>
-          <p className="text-sm text-gray-600 mb-3">Besuchen Sie 5 neue Partner-Geschäfte in diesem Monat</p>
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
-            <div 
-              className="bg-green-500 rounded-full h-3 transition-all" 
-              style={{ width: `${(userProgress.monthlyChallenge.current / userProgress.monthlyChallenge.target) * 100}%` }}
-            ></div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Belohnung: {userProgress.monthlyChallenge.reward}</span>
-            <span className="text-sm font-medium text-green-600">
-              {userProgress.monthlyChallenge.target - userProgress.monthlyChallenge.current} noch zu schaffen
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Streak Challenge */}
-      <div className="bg-white rounded-xl shadow-md p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-gray-800">Streak Challenge</h3>
-          <div className="flex items-center gap-1 text-orange-500">
-            <Flame className="w-4 h-4" />
-            <span className="font-bold">{userProgress.currentStreak}</span>
-          </div>
-        </div>
-        <p className="text-sm text-gray-600 mb-3">Kaufen Sie 7 Tage hintereinander bei Partnern ein</p>
-        <div className="grid grid-cols-7 gap-1 mb-3">
-          {Array.from({ length: 7 }, (_, i) => (
-            <div 
-              key={i} 
-              className={`h-8 rounded ${
-                i < userProgress.currentStreak 
-                  ? 'bg-orange-500' 
-                  : 'bg-gray-200'
-              }`}
-            ></div>
-          ))}
-        </div>
-        <div className="text-center">
-          <span className="text-sm text-gray-600">
-            {7 - userProgress.currentStreak} Tage bis zur Belohnung: 25€ Premium-Gutschein
-          </span>
-        </div>
-      </div>
-
-      {/* Discovery Challenge */}
-      <div className="bg-white rounded-xl shadow-md p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-gray-800">Discovery Explorer</h3>
-          <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-            {userProgress.discoveryScore}/500
-          </span>
-        </div>
-        <p className="text-sm text-gray-600 mb-3">Sammeln Sie Discovery-Punkte durch neue Partner</p>
-        <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
-          <div 
-            className="bg-purple-500 rounded-full h-3 transition-all" 
-            style={{ width: `${(userProgress.discoveryScore / 500) * 100}%` }}
-          ></div>
-        </div>
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>Nächste Belohnung: VIP-Status</span>
-          <span>{500 - userProgress.discoveryScore} Punkte</span>
-        </div>
-      </div>
-
-      {/* Achievement Badges */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Errungenschaften</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: <PaletteIcon className="w-6 h-6" />, title: 'Kunstliebhaber', desc: '5 Galerien besucht', unlocked: true },
-            { icon: <Book className="w-6 h-6" />, title: 'Bücherwurm', desc: '3 Buchhandlungen', unlocked: true },
-            { icon: <Utensils className="w-6 h-6" />, title: 'Feinschmecker', desc: '10 Restaurants', unlocked: false },
-            { icon: <Crown className="w-6 h-6" />, title: 'VIP Member', desc: '500 Discovery-Punkte', unlocked: false },
-            { icon: <Flame className="w-6 h-6" />, title: 'Streak Master', desc: '14 Tage Streak', unlocked: false },
-            { icon: <Award className="w-6 h-6" />, title: 'Partner-Champion', desc: 'Alle Partner besucht', unlocked: false }
-          ].map((achievement, index) => (
-            <div 
-              key={index} 
-              className={`bg-white rounded-xl shadow-md p-3 text-center ${
-                achievement.unlocked ? 'border-2 border-yellow-400' : 'opacity-60'
-              }`}
-            >
-              <div className={`mx-auto mb-2 ${
-                achievement.unlocked ? 'text-yellow-500' : 'text-gray-400'
-              }`}>
-                {achievement.icon}
-              </div>
-              <h4 className="font-medium text-xs text-gray-800 mb-1">{achievement.title}</h4>
-              <p className="text-xs text-gray-600">{achievement.desc}</p>
-              {achievement.unlocked && (
-                <div className="mt-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Modals
-  const VoucherDetailModal: React.FC = () => {
-    if (!selectedVoucher) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setSelectedVoucher(null)}>
-        <div 
-          className="bg-white rounded-t-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Voucher Image */}
-          <div className="relative h-48">
-            <Image
-              src={selectedVoucher.image}
-              alt={selectedVoucher.title}
-              fill
-              className="object-cover"
-            />
-            <button
-              onClick={() => setSelectedVoucher(null)}
-              className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            {selectedVoucher.crossSellingRuleId && (
-              <div className="absolute top-4 left-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-2">
-                <Handshake className="w-4 h-4" />
-                Cross-Selling Bonus
-              </div>
-            )}
-          </div>
-
-          <div className="p-6">
-            {/* Voucher Header */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedVoucher.title}</h2>
-              <div className="text-3xl font-bold text-pink-600 mb-2">
-                {selectedVoucher.type === 'percentage' ? `${selectedVoucher.value}%` : `${selectedVoucher.value}€`}
-              </div>
-              <p className="text-gray-600">{selectedVoucher.description}</p>
-            </div>
-
-            {/* Source Transaction */}
-            {selectedVoucher.sourceTransaction && (
-              <div className="bg-pink-50 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkle className="w-5 h-5 text-pink-500" />
-                  <h3 className="font-bold text-gray-800">Erhalten durch</h3>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-800">{selectedVoucher.sourceTransaction.storeName}</div>
-                    <div className="text-sm text-gray-600">
-                      {selectedVoucher.sourceTransaction.amount}€ am {selectedVoucher.sourceTransaction.date.toLocaleDateString('de-DE')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Store Details */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-lg overflow-hidden relative">
-                  <Image src={selectedVoucher.store.logo} alt={selectedVoucher.store.name} fill className="object-cover" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-800">{selectedVoucher.store.name}</h3>
-                  <p className="text-sm text-gray-600">{selectedVoucher.store.address}</p>
-                </div>
-              </div>
-              {selectedVoucher.store.isPartner && (
-                <div className="flex items-center gap-2">
-                  {(() => {
-                    const badge = getPartnerLevelBadge(selectedVoucher.store.partnerLevel);
-                    return (
-                      <div className={`${badge.color} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1`}>
-                        {badge.icon}
-                        <span>{badge.text} Partner</span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            {/* Voucher Details */}
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-3">
-                <Clock3 className="w-5 h-5 text-gray-500" />
-                <div>
-                  <div className="font-medium text-gray-800">Gültig bis</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedVoucher.validUntil.toLocaleDateString('de-DE')} • {formatTimeLeft(selectedVoucher.validUntil)}
-                  </div>
-                </div>
-              </div>
-
-              {selectedVoucher.minPurchase && (
-                <div className="flex items-center gap-3">
-                  <Euro className="w-5 h-5 text-gray-500" />
-                  <div>
-                    <div className="font-medium text-gray-800">Mindestbestellwert</div>
-                    <div className="text-sm text-gray-600">{selectedVoucher.minPurchase}€</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <Repeat className="w-5 h-5 text-gray-500" />
-                <div>
-                  <div className="font-medium text-gray-800">Verwendung</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedVoucher.usageLimit ? `${selectedVoucher.usageCount}/${selectedVoucher.usageLimit} mal verwendet` : 'Einmalig verwendbar'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div className="mb-6">
-              <h4 className="font-bold text-gray-800 mb-2">Bedingungen</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                {selectedVoucher.terms.map((term, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-1">•</span>
-                    <span>{term}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-3">
-              {!selectedVoucher.isUsed && !selectedVoucher.isExpired && (
-                <button
-                  onClick={() => setShowQRCode(true)}
-                  className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-pink-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <QrCode className="w-6 h-6" />
-                  QR-Code anzeigen
-                </button>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => toggleFavorite(selectedVoucher.id)}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-colors ${
-                    favoriteVouchers.includes(selectedVoucher.id)
-                      ? 'bg-red-100 text-red-600'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${favoriteVouchers.includes(selectedVoucher.id) ? 'fill-current' : ''}`} />
-                  {favoriteVouchers.includes(selectedVoucher.id) ? 'Favorit' : 'Merken'}
-                </button>
-                <button className="flex items-center justify-center gap-2 bg-gray-100 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors">
-                  <Share2 className="w-4 h-4" />
-                  Teilen
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const QRCodeModal: React.FC = () => {
-    if (!showQRCode || !selectedVoucher) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowQRCode(false)}>
-        <div 
-          className="bg-white rounded-2xl p-8 max-w-sm w-full text-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => setShowQRCode(false)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-6 h-6" />
-          </button>
-
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Gutschein einlösen</h3>
-          
-          {/* QR Code placeholder */}
-          <div className="w-48 h-48 mx-auto mb-4 bg-gray-100 rounded-xl flex items-center justify-center">
-            <QrCode className="w-24 h-24 text-gray-400" />
-          </div>
-
-          <p className="text-sm text-gray-600 mb-4">
-            Zeigen Sie diesen QR-Code an der Kasse von {selectedVoucher.store.name} vor
-          </p>
-
-          <div className="bg-pink-50 rounded-lg p-3 mb-4">
-            <div className="font-bold text-pink-600 text-lg">
-              {selectedVoucher.type === 'percentage' ? `${selectedVoucher.value}% Rabatt` : `${selectedVoucher.value}€ Gutschein`}
-            </div>
-            {selectedVoucher.minPurchase && (
-              <div className="text-sm text-gray-600">
-                Mindestbestellwert: {selectedVoucher.minPurchase}€
-              </div>
-            )}
-          </div>
-
-          <p className="text-xs text-gray-500">
-            Code: {selectedVoucher.qrCode}
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  const PartnershipDetailModal: React.FC = () => {
-    if (!showPartnershipDetails || !selectedPartnership) return null;
-
-    const triggerStore = stores.find(s => s.id === selectedPartnership.triggerStoreId);
-    const targetStore = stores.find(s => s.id === selectedPartnership.targetStoreId);
-
-    if (!triggerStore || !targetStore) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setShowPartnershipDetails(false)}>
-        <div 
-          className="bg-white rounded-t-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Partnership Details</h2>
-              <button
-                onClick={() => setShowPartnershipDetails(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Partnership Flow */}
-            <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl p-4 mb-6">
-              <h3 className="font-bold mb-3">{selectedPartnership.description}</h3>
-              
-              <div className="space-y-4">
-                {/* Trigger Store */}
-                <div className="flex items-center gap-3 bg-white/10 rounded-lg p-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden relative">
-                    <Image src={triggerStore.logo} alt={triggerStore.name} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{triggerStore.name}</div>
-                    <div className="text-sm opacity-90">Einkauf ab {selectedPartnership.minPurchaseAmount}€</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm opacity-90">1. Kaufen</div>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <ArrowRight className="w-6 h-6 mx-auto" />
-                </div>
-
-                {/* Target Store */}
-                <div className="flex items-center gap-3 bg-white/10 rounded-lg p-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden relative">
-                    <Image src={targetStore.logo} alt={targetStore.name} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{targetStore.name}</div>
-                    <div className="text-sm opacity-90">
-                      {selectedPartnership.voucherType === 'percentage' 
-                        ? `${selectedPartnership.voucherValue}% Rabatt` 
-                        : `${selectedPartnership.voucherValue}€ Bonus`
-                      }
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm opacity-90">2. Einlösen</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Store Details */}
-            <div className="space-y-4 mb-6">
-              <div>
-                <h4 className="font-bold text-gray-800 mb-2">Auslöser-Geschäft</h4>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden relative">
-                      <Image src={triggerStore.logo} alt={triggerStore.name} fill className="object-cover" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-800">{triggerStore.name}</div>
-                      <div className="text-sm text-gray-600">{triggerStore.address}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span>{triggerStore.rating}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {getStoreIcon(triggerStore.category)}
-                      <span className="capitalize">{triggerStore.category}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-gray-800 mb-2">Bonus-Geschäft</h4>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden relative">
-                      <Image src={targetStore.logo} alt={targetStore.name} fill className="object-cover" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-800">{targetStore.name}</div>
-                      <div className="text-sm text-gray-600">{targetStore.address}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span>{targetStore.rating}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {getStoreIcon(targetStore.category)}
-                      <span className="capitalize">{targetStore.category}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Partnership Rules */}
-            <div className="bg-blue-50 rounded-xl p-4 mb-6">
-              <h4 className="font-bold text-gray-800 mb-3">Bedingungen</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Mindest-Einkaufswert: {selectedPartnership.minPurchaseAmount}€</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Gutschein-Wert: {selectedPartnership.voucherType === 'percentage' 
-                    ? `${selectedPartnership.voucherValue}% Rabatt` 
-                    : `${selectedPartnership.voucherValue}€ Bonus`}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Gültigkeitsdauer: {selectedPartnership.validityDays} Tage</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Kategorie: {selectedPartnership.category.replace('-', ' → ')}</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  // Navigate to store or show directions
-                  setShowPartnershipDetails(false);
-                }}
-                className="w-full bg-pink-500 text-white py-3 rounded-xl font-medium hover:bg-pink-600 transition-colors"
-              >
-                Zu {triggerStore.name} navigieren
-              </button>
-              <button
-                onClick={() => setShowPartnershipDetails(false)}
-                className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                Verstanden
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Main render
-  return (
-    <>
-      <Head>
-        <title>Gutscheine - BS.Smart Braunschweig</title>
-        <meta name="description" content="Entdecken Sie Gutscheine und Cross-Selling-Angebote in Braunschweig" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
-
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-md mx-auto bg-white shadow-2xl min-h-screen">
-          <SearchAndFilter />
-          <ViewSelector />
-          
-          {currentView === 'my-vouchers' && <MyVouchersView />}
-          {currentView === 'discover' && <DiscoverView />}
-          {currentView === 'partnerships' && <PartnershipsView />}
-          {currentView === 'challenges' && <ChallengesView />}
-
-          {/* Modals */}
-          <VoucherDetailModal />
-          <QRCodeModal />
-          <PartnershipDetailModal />
-
-          {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg">
-            <div className="flex justify-around items-center">
-              <Link href="/" className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500 transition-colors">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Home</span>
-              </Link>
-              
-              <Link href="/navigation" className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500 transition-colors">
-                <Navigation className="w-6 h-6" />
-                <span className="text-xs font-medium">Navigation</span>
-              </Link>
-              
-              <Link href="/shopping" className="flex flex-col items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors">
-                <ShoppingBag className="w-6 h-6" />
-                <span className="text-xs font-medium">Shopping</span>
-              </Link>
-              
-              <Link href="/vouchers" className="flex flex-col items-center gap-1 text-pink-500">
-                <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center">
-                  <Gift className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xs font-medium">Gutscheine</span>
-              </Link>
-              
-              <Link href="/restaurants" className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500 transition-colors">
-                <Coffee className="w-6 h-6" />
-                <span className="text-xs font-medium">Restaurants</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-export default VouchersPage;
+}

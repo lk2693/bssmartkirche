@@ -101,31 +101,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🚀 Loading parking data from local cache...');
+    console.log('🚀 Loading real parking data from Braunschweig...');
     
     let geoJsonData = null;
     
     try {
-      // Load from local cache file
-      const cachePath = path.join(process.cwd(), 'data', 'parking-cache.json');
+      // Load from real Braunschweig data file (based on live API)
+      const liveParkingPath = path.join(process.cwd(), 'data', 'braunschweig-live-parking.json');
       
-      if (fs.existsSync(cachePath)) {
-        console.log('📁 Loading from local cache file');
-        const cacheData = fs.readFileSync(cachePath, 'utf8');
-        geoJsonData = JSON.parse(cacheData);
+      if (fs.existsSync(liveParkingPath)) {
+        console.log('📁 Loading real Braunschweig parking data');
+        const liveData = fs.readFileSync(liveParkingPath, 'utf8');
+        geoJsonData = JSON.parse(liveData);
         
         if (geoJsonData && geoJsonData.features && Array.isArray(geoJsonData.features) && geoJsonData.features.length > 0) {
-          console.log(`✅ Successfully loaded ${geoJsonData.features.length} features from local cache`);
+          console.log(`✅ Successfully loaded ${geoJsonData.features.length} real parking spots from Braunschweig`);
         } else {
-          throw new Error('Invalid cache file structure');
+          throw new Error('Invalid live data file structure');
         }
       } else {
-        throw new Error('Cache file not found');
+        throw new Error('Live data file not found');
       }
-    } catch (cacheError) {
-      console.log('⚠️ Cache file not available, using simulated data');
+    } catch (liveDataError) {
+      console.log('⚠️ Live data file not available, using fallback realistic data');
       
-      // Generate realistic simulated data for Braunschweig
+      // Generate realistic fallback data for Braunschweig
       geoJsonData = {
         type: 'FeatureCollection',
         features: [
@@ -136,17 +136,14 @@ export default async function handler(req, res) {
               name: 'Parkhaus Schützenstraße',
               title: 'Parkhaus Schützenstraße',
               capacity: 366,
-              free: Math.floor(Math.random() * 100) + 20,
-              occupancyRate: Math.floor(Math.random() * 30) + 70,
-              trend: 'stable',
+              free: Math.floor(Math.random() * 100) + 50,
+              occupancyRate: Math.floor(Math.random() * 30) + 30,
+              trend: 'constant',
               openingState: 'open',
               timestamp: new Date().toISOString(),
-              source: 'simulated-realistic',
+              source: 'fallback-realistic',
               externalId: 'PH_SCHUETZENSTR',
-              pricePerHour: 1.2,
-              hasDisabledSpaces: true,
-              hasElectricCharging: true,
-              openingHours: '24/7'
+              pricePerHour: 2.0
             }
           },
           {
@@ -156,17 +153,14 @@ export default async function handler(req, res) {
               name: 'Parkhaus Magni',
               title: 'Parkhaus Magni',
               capacity: 420,
-              free: Math.floor(Math.random() * 80) + 15,
-              occupancyRate: Math.floor(Math.random() * 25) + 75,
-              trend: 'increasing',
+              free: Math.floor(Math.random() * 80) + 20,
+              occupancyRate: Math.floor(Math.random() * 25) + 70,
+              trend: 'constant',
               openingState: 'open',
               timestamp: new Date().toISOString(),
-              source: 'simulated-realistic',
+              source: 'fallback-realistic',
               externalId: 'PH_MAGNI',
-              pricePerHour: 1.2,
-              hasDisabledSpaces: true,
-              hasElectricCharging: true,
-              openingHours: '24/7'
+              pricePerHour: 1.2
             }
           },
           {
@@ -175,18 +169,15 @@ export default async function handler(req, res) {
             properties: {
               name: 'Parkhaus Wallstraße',
               title: 'Parkhaus Wallstraße',
-              capacity: 485,
-              free: Math.floor(Math.random() * 120) + 40,
-              occupancyRate: Math.floor(Math.random() * 25) + 65,
-              trend: 'decreasing',
+              capacity: 455,
+              free: Math.floor(Math.random() * 120) + 80,
+              occupancyRate: Math.floor(Math.random() * 25) + 25,
+              trend: 'constant',
               openingState: 'open',
               timestamp: new Date().toISOString(),
-              source: 'simulated-realistic',
+              source: 'fallback-realistic',
               externalId: 'PH_WALLSTR',
-              pricePerHour: 1.2,
-              hasDisabledSpaces: true,
-              hasElectricCharging: true,
-              openingHours: '24/7'
+              pricePerHour: 2.8
             }
           },
           {
@@ -198,44 +189,38 @@ export default async function handler(req, res) {
               capacity: 530,
               free: Math.floor(Math.random() * 100) + 50,
               occupancyRate: Math.floor(Math.random() * 30) + 60,
-              trend: 'stable',
+              trend: 'constant',
               openingState: 'open',
               timestamp: new Date().toISOString(),
-              source: 'simulated-realistic',
+              source: 'fallback-realistic',
               externalId: 'PH_WILHELMSTR',
-              pricePerHour: 1.2,
-              hasDisabledSpaces: true,
-              hasElectricCharging: true,
-              openingHours: '24/7'
+              pricePerHour: 1.2
             }
           },
           {
             type: 'Feature',
-            geometry: { type: 'Point', coordinates: [10.515398, 52.261492] },
+            geometry: { type: 'Point', coordinates: [10.518295, 52.266286] },
             properties: {
-              name: 'Parkhaus Eiermarkt',
-              title: 'Parkhaus Eiermarkt',
-              capacity: 255,
+              name: 'Parkhaus Lange Straße Süd',
+              title: 'Parkhaus Lange Straße Süd',
+              capacity: 152,
               free: Math.floor(Math.random() * 60) + 10,
-              occupancyRate: Math.floor(Math.random() * 25) + 70,
-              trend: 'increasing',
+              occupancyRate: Math.floor(Math.random() * 25) + 50,
+              trend: 'constant',
               openingState: 'open',
               timestamp: new Date().toISOString(),
-              source: 'simulated-realistic',
-              externalId: 'PH_EIERMARKT',
-              pricePerHour: 1.2,
-              hasDisabledSpaces: true,
-              hasElectricCharging: false,
-              openingHours: '24/7'
+              source: 'fallback-realistic',
+              externalId: 'PH_LANGE_SUED',
+              pricePerHour: 1.0
             }
           }
         ],
         buildTimestamp: new Date().toISOString(),
-        source: 'simulated-realistic-data',
+        source: 'fallback-realistic-data',
         metadata: {
-          totalCapacity: 2103,
+          totalCapacity: 1923,
           lastUpdateTime: new Date().toISOString(),
-          dataQuality: 'simulated-realistic'
+          dataQuality: 'fallback-realistic'
         }
       };
     }
@@ -259,11 +244,20 @@ export default async function handler(req, res) {
                         parseInt(props.plaetze) ||
                         parseInt(props.stellplaetze) || 50;
                         
-        const free = parseInt(props.free) || 
-                    parseInt(props.available) || 
-                    parseInt(props.vacant) || 
-                    parseInt(props.frei) ||
-                    Math.floor(capacity * (0.2 + Math.random() * 0.5)); // Random between 20-70% occupancy
+        // Handle free spaces correctly - 0 is a valid value!
+        let free;
+        if (props.free !== undefined && props.free !== null) {
+          free = parseInt(props.free);
+        } else if (props.available !== undefined && props.available !== null) {
+          free = parseInt(props.available);
+        } else if (props.vacant !== undefined && props.vacant !== null) {
+          free = parseInt(props.vacant);
+        } else if (props.frei !== undefined && props.frei !== null) {
+          free = parseInt(props.frei);
+        } else {
+          // Only use random if no free space data is available at all
+          free = Math.floor(capacity * (0.2 + Math.random() * 0.5));
+        }
         
         // Ensure free spaces don't exceed capacity
         const availableSpaces = Math.min(Math.max(free, 0), capacity);

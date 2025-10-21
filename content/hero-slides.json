@@ -1,0 +1,84 @@
+{
+  "slides": [
+    {
+      "id": "dom",
+      "title": "Dom St. Blasii",
+      "subtitle": "Wahrzeichen der Stadt",
+      "description": "Entdecken Sie das beeindruckende romanische Bauwerk aus dem 12. Jahrhundert",
+      "image": "/dom st blasii.jpeg",
+      "cta": "Mehr erfahren",
+      "ctaLink": "/stadtfuehrungen",
+      "gradient": "from-amber-500 to-orange-600",
+      "active": true,
+      "order": 1,
+      "partnerId": "stadtmarketing",
+      "validFrom": "2025-01-01",
+      "validUntil": "2025-12-31"
+    },
+    {
+      "id": "rizzi",
+      "title": "Happy Rizzi House",
+      "subtitle": "Bunte Moderne",
+      "description": "Erleben Sie moderne Kunst in der historischen Altstadt von Braunschweig",
+      "image": "/rizzi house.jpeg",
+      "cta": "Besuchen",
+      "ctaLink": "/events",
+      "gradient": "from-purple-500 to-indigo-600",
+      "active": true,
+      "order": 2,
+      "partnerId": "stadtmarketing",
+      "validFrom": "2025-01-01",
+      "validUntil": "2025-12-31"
+    },
+    {
+      "id": "braunschweig",
+      "title": "Braunschweig Panorama",
+      "subtitle": "Löwenstadt entdecken",
+      "description": "Erleben Sie die wunderschöne Skyline der historischen Löwenstadt",
+      "image": "/Braunschweig.png",
+      "cta": "Erkunden",
+      "ctaLink": "/navigation",
+      "gradient": "from-blue-500 to-indigo-600",
+      "active": true,
+      "order": 3,
+      "partnerId": "stadtmarketing",
+      "validFrom": "2025-01-01",
+      "validUntil": "2025-12-31"
+    },
+    {
+      "id": "magniviertel",
+      "title": "Magniviertel",
+      "subtitle": "Kultureller Mittelpunkt",
+      "description": "Shoppen, schlemmen und entspannen im historischen Fachwerkviertel",
+      "image": "/magniviertel.webp",
+      "cta": "Erkunden",
+      "ctaLink": "/shopping",
+      "gradient": "from-green-500 to-emerald-600",
+      "active": true,
+      "order": 4,
+      "partnerId": "stadtmarketing",
+      "validFrom": "2025-01-01",
+      "validUntil": "2025-12-31"
+    },
+    {
+      "id": "klassik",
+      "title": "Klassiches Weihnachtsfest Braunschweig",
+      "subtitle": "Kultur",
+      "description": "Erleben Sie den klassichen Weihnachtsmarkt und kulturelle Highlights in Braunschweig",
+      "image": "https://www.braunschweig.de/weihnachtsmarkt/index.php.media/457049/WM_Statseite_kleiner.jpg.scaled/ef2d2dc096fded2e3fd4187bc74283fb.jpg",
+      "cta": "Programm ansehen",
+      "ctaLink": "/events",
+      "gradient": "from-rose-500 to-pink-600",
+      "active": true,
+      "order": 5,
+      "partnerId": "stadtmarketing",
+      "validFrom": "2025-01-01",
+      "validUntil": "2025-12-31"
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-10-07T10:31:39.367Z",
+    "version": "1.0",
+    "updatedBy": "admin-interface"
+  }
+}

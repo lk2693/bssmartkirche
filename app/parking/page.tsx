@@ -47,9 +47,10 @@ interface OSMStreetParking {
     'parking:right'?: string;
     fee?: string;
     maxstay?: string;
+  };
 }
 
-// OSM API Integration (bleibt gleich)
+// OSM API Integration
 class OSMParkingService {
   private static readonly OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
   private static readonly BRAUNSCHWEIG_BOUNDS = {
@@ -327,17 +328,25 @@ const calculateDistance = (point1: { lat: number; lng?: number; lon?: number }, 
   return R * c;
 };
 
-// Konvertiere offizielle Braunschweig GeoJSON-Daten zu unserem Format
-const convertOfficialDataToParkingSpots = (geoJsonFeatures: any[]): ParkingSpot[] => {
+// Konvertiere API-Daten zu unserem ParkingSpot Format
+const convertOfficialDataToParkingSpots = (parkingData: any[]): ParkingSpot[] => {
   const baseLocation = { lat: 52.2632, lng: 10.5200 }; // Braunschweig Zentrum
   
-  return geoJsonFeatures.map((feature, index) => {
-    const props = feature.properties || {};
+  // Prüfe, ob es sich um GeoJSON-Features oder direkte Parking-Daten handelt
+  return parkingData.map((item, index) => {
+    // Wenn es ein GeoJSON Feature ist, extrahiere properties
+    const data = item.properties ? item.properties : item;
+    const geometry = item.geometry;
     
     // Sichere Behandlung der Koordinaten
     let coordinates = { lat: 52.2632, lng: 10.5200 }; // Fallback zu Braunschweig Zentrum
-    if (feature.geometry && feature.geometry.coordinates && Array.isArray(feature.geometry.coordinates)) {
-      const coords = feature.geometry.coordinates; // [lng, lat] format
+    
+    if (data.coordinates) {
+      // Direkte Koordinaten in unserem Format
+      coordinates = data.coordinates;
+    } else if (geometry && geometry.coordinates && Array.isArray(geometry.coordinates)) {
+      // GeoJSON Format [lng, lat]
+      const coords = geometry.coordinates;
       coordinates = { 
         lat: parseFloat(coords[1]) || 52.2632, 
         lng: parseFloat(coords[0]) || 10.5200 
@@ -346,51 +355,59 @@ const convertOfficialDataToParkingSpots = (geoJsonFeatures: any[]): ParkingSpot[
     
     const distance = calculateDistance(coordinates, baseLocation);
     
-    // Verwende offizielle Daten
-    const totalSpaces = props.capacity || 0;
-    const availableSpaces = props.free || 0;
-    const occupancyRate = props.occupancyRate || 0;
+    // Verwende die Daten direkt von unserer API oder aus GeoJSON
+    const totalSpaces = data.totalSpaces || data.capacity || 0;
+    const availableSpaces = data.availableSpaces || data.free || 0;
+    const occupancyRate = data.occupancyRate || 0;
     
-    // Features basierend auf offiziellen Daten
+    // Features basierend auf den Daten
     const features = [];
-    if (props.openingState === 'open') features.push('Geöffnet');
-    if (props.subTypes?.includes('shortterm')) features.push('Kurzzeitparken');
-    if (props.subTypes?.includes('longterm')) features.push('Langzeitparken');
-    if (props.trend) features.push(`Trend: ${props.trend}`);
+    if (data.openingState === 'open' || data.isOpen) features.push('Geöffnet');
+    if (data.subTypes?.includes('shortterm')) features.push('Kurzzeitparken');
+    if (data.subTypes?.includes('longterm')) features.push('Langzeitparken');
+    if (data.trend) features.push(`Trend: ${data.trend}`);
     if (occupancyRate) features.push(`${occupancyRate}% belegt`);
     
-    // Extrahiere Preise aus der Beschreibung (falls verfügbar)
-    let hourlyPrice = 1.50; // Default
-    if (props.description) {
-      const priceMatch = props.description.match(/(\d+[,.]?\d*)\s*(?:EUR|€)/);
+    // Extrahiere Preise aus der Beschreibung oder verwende vorhandene Preise
+    let hourlyPrice = data.hourlyPrice || data.pricePerHour || data.price || 1.50;
+    if (data.description && !hourlyPrice) {
+      const priceMatch = data.description.match(/(\d+[,.]?\d*)\s*(?:EUR|€)/);
       if (priceMatch) {
         hourlyPrice = parseFloat(priceMatch[1].replace(',', '.'));
       }
     }
     
     return {
-      id: props.externalId || feature.id || `official_${props.name.replace(/\s+/g, '_').toLowerCase()}_${index}`,
-      name: props.title || props.name || `Parkhaus ${index + 1}`,
-      type: 'garage' as const,
-      address: props.description ? extractAddress(props.description) : 'Braunschweig',
+      id: data.id || data.externalId || item.id || `parking_${data.name?.replace(/\s+/g, '_').toLowerCase()}_${index}`,
+      name: data.name || data.title || `Parkhaus ${index + 1}`,
+      type: data.type || 'garage',
+      address: data.address || (data.description ? extractAddress(data.description) : 'Braunschweig'),
       coordinates: coordinates,
       distance: Math.round(distance),
       walkingTime: Math.max(1, Math.round(distance / 70)), // ~4.2 km/h Gehgeschwindigkeit
       availableSpaces: availableSpaces,
       totalSpaces: totalSpaces,
       hourlyPrice: hourlyPrice,
-      isOpen: props.openingState === 'open',
-      dataSource: 'live' as const,
-      rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // 3.5-5.0
-      features: features,
-      amenities: ['Echtzeitdaten', 'Überdacht', 'Offiziell'],
-      pricing: {
+      isOpen: data.isOpen || data.openingState === 'open',
+      dataSource: data.dataSource || 'live',
+      rating: data.rating || Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // 3.5-5.0
+      features: data.features || features,
+      amenities: data.amenities || ['Echtzeitdaten', 'Überdacht', 'Offiziell'],
+      pricing: data.pricing || {
         hourly: hourlyPrice,
         daily: hourlyPrice * 8,
         monthly: undefined
-      }
+      },
+      source: data.source || 'api',
+      trend: data.trend || (occupancyRate > 80 ? 'increasing' : occupancyRate < 30 ? 'decreasing' : 'stable'),
+      maxHeight: data.maxHeight || 2.0,
+      hasDisabledSpaces: data.hasDisabledSpaces || false,
+      hasElectricCharging: data.hasElectricCharging || false,
+      openingHours: data.openingHours || '24/7',
+      occupancyRate: occupancyRate,
+      lastUpdate: data.lastUpdate || data.timestamp || new Date().toISOString()
     };
-  });
+  }).filter(spot => spot !== null); // Remove null entries
 };
 
 // Hilfsfunktion zum Extrahieren der Adresse aus der HTML-Beschreibung
@@ -421,6 +438,69 @@ const ParkingPage = () => {
   const [parkingDataLoading, setParkingDataLoading] = useState(false);
   const [parkingDataError, setParkingDataError] = useState<string | null>(null);
   const [cacheInfo, setCacheInfo] = useState<any>(null);
+
+  // Helper functions for parsing GeoJSON data
+  const extractAddress = (description: string): string => {
+    if (!description) return 'Braunschweig';
+    
+    // Extract address from HTML description
+    const addressMatch = description.match(/<span class="cnw_skip_translation">\s*([^<]+)\s*<\/span>/);
+    if (addressMatch && addressMatch[1]) {
+      return `${addressMatch[1]}, 38100 Braunschweig`;
+    }
+    
+    return 'Braunschweig';
+  };
+
+  const extractPrice = (description: string): number => {
+    if (!description) return 2.0;
+    
+    // Extract price from description (various formats)
+    const pricePatterns = [
+      /(\d+,\d+)\s*EUR?\s*\/?\s*Std/i,
+      /(\d+,\d+)\s*€\s*\/?\s*Std/i,
+      /(\d+\.\d+)\s*EUR?\s*\/?\s*Std/i,
+      /erste\s+Stunde\s+(\d+,\d+)\s*EUR/i
+    ];
+    
+    for (const pattern of pricePatterns) {
+      const match = description.match(pattern);
+      if (match && match[1]) {
+        return parseFloat(match[1].replace(',', '.'));
+      }
+    }
+    
+    return 2.0; // Default price
+  };
+
+  const extractFeatures = (description: string): string[] => {
+    if (!description) return [];
+    
+    const features: string[] = [];
+    
+    // Check for various features
+    if (description.includes('Behindertenparkplätze') || description.includes('Behindertenstellplätze')) {
+      features.push('Behindertenparkplätze');
+    }
+    if (description.includes('Frauenparkplätze')) {
+      features.push('Frauenparkplätze');
+    }
+    if (description.includes('Mutter-Kind')) {
+      features.push('Mutter-Kind-Parkplätze');
+    }
+    if (description.includes('24 Stunden') || description.includes('24:00')) {
+      features.push('24h geöffnet');
+    }
+    if (description.includes('EC-Karte') || description.includes('Kartenzahlung')) {
+      features.push('Kartenzahlung');
+    }
+    if (description.includes('Ladepunkte') || description.includes('E-Kfz')) {
+      features.push('E-Auto Ladestation');
+    }
+    
+    return features;
+  };
+
   const [userLocation, setUserLocation] = useState({ lat: 52.2625, lng: 10.5211 }); // Fallback: Braunschweig Zentrum
   const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [isLocationLoading, setIsLocationLoading] = useState(false);
@@ -491,46 +571,86 @@ const ParkingPage = () => {
     }
   }, [locationPermission]);
 
-  // Echtzeitdaten von der Parkplatz-API laden
+  // Echtzeitdaten von der GeoJSON API laden (echte Live-Daten)
   const loadRealTimeParkingData = async () => {
     setParkingDataLoading(true);
     setParkingDataError(null);
     
     try {
-      // Use the new Vercel-optimized parking API
-      const response = await fetch('/api/parking-vercel');
+      // Use the new GeoJSON API with real live data from Braunschweig
+      const response = await fetch('/api/parking-geojson');
       
       if (response.ok) {
         const parkingData = await response.json();
-        if (parkingData.success && parkingData.data) {
-          setRealTimeParkingData(parkingData.data);
-          setCacheInfo(parkingData.cacheInfo || {
-            lastUpdate: parkingData.buildTimestamp || new Date().toISOString(),
-            totalFeatures: parkingData.data.length
+        if (parkingData.success && parkingData.items) {
+          // Transform GeoJSON items to our format
+          const transformedData = parkingData.items.map((item: any) => ({
+            id: item.id,
+            name: item.name || 'Unbekanntes Parkhaus',
+            type: 'garage' as const,
+            address: item.raw?.description ? extractAddress(item.raw.description) : 'Braunschweig',
+            coordinates: { lat: item.lat, lng: item.lon },
+            distance: calculateDistance(userLocation, { lat: item.lat, lng: item.lon }),
+            walkingTime: Math.ceil(calculateDistance(userLocation, { lat: item.lat, lng: item.lon }) * 12), // ~12 min per km
+            availableSpaces: item.raw?.free || 0,
+            totalSpaces: item.raw?.capacity || 100,
+            hourlyPrice: extractPrice(item.raw?.description) || 2.0,
+            isOpen: item.raw?.openingState === 'open' || true,
+            dataSource: 'live' as const,
+            rating: 4.2,
+            features: extractFeatures(item.raw?.description),
+            occupancyRate: item.raw?.occupancyRate || 0,
+            trend: item.raw?.trend || 'constant',
+            lastUpdated: item.raw?.timestamp || new Date().toISOString()
+          }));
+          
+          setRealTimeParkingData(transformedData);
+          setCacheInfo({
+            lastUpdate: parkingData.updatedAt,
+            totalFeatures: parkingData.count,
+            dataSource: 'geojson-live-api',
+            updateInterval: '15 minutes'
           });
-          console.log('✅ Parkplatzdaten aus Vercel API geladen:', parkingData.data.length, 'Parkhäuser');
+          console.log(`✅ Live GeoJSON Daten geladen: ${transformedData.length} Parkhäuser (echte Live-Daten)`);
         } else {
-          throw new Error(parkingData.error || 'Fehler beim Laden der Parkplatzdaten');
+          throw new Error(parkingData.reason || 'Fehler beim Laden der GeoJSON Daten');
         }
       } else {
-        throw new Error(`API Fehler: ${response.status}`);
+        throw new Error(`GeoJSON API Fehler: ${response.status}`);
       }
     } catch (error) {
-      console.error('❌ Fehler beim Laden der Parkplatzdaten:', error);
+      console.error('❌ Fehler beim Laden der GeoJSON Daten:', error);
       setParkingDataError(error instanceof Error ? error.message : 'Unbekannter Fehler');
       
-      // Fallback data für bessere Benutzererfahrung
+      // Enhanced Fallback mit Smart API
+      try {
+        console.log('🔄 Fallback: Versuche Smart Parking API...');
+        const fallbackResponse = await fetch('/api/parking-smart');
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.success && fallbackData.data) {
+            setRealTimeParkingData(fallbackData.data);
+            setCacheInfo(fallbackData.metadata);
+            console.log('✅ Fallback erfolgreich: Smart API verwendet');
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Auch Fallback-API fehlgeschlagen:', fallbackError);
+      }
+      
+      // Ultimate Fallback mit realistischen Daten
       setRealTimeParkingData([
         {
-          id: 'fallback_loewenwall',
-          name: 'Parkhaus Löwenwall',
+          id: 'fallback_eiermarkt',
+          name: 'Parkhaus Eiermarkt',
           type: 'garage',
-          address: 'Löwenwall 18A, 38100 Braunschweig',
-          coordinates: { lat: 52.2603, lng: 10.5190 },
-          distance: 0.8,
-          walkingTime: 10,
-          availableSpaces: 45,
-          totalSpaces: 150,
+          address: 'Güldenstraße 70, 38100 Braunschweig',
+          coordinates: { lat: 52.2615, lng: 10.5154 },
+          distance: 0.5,
+          walkingTime: 6,
+          availableSpaces: Math.floor(Math.random() * 80) + 20,
+          totalSpaces: 255,
           hourlyPrice: 1.5,
           isOpen: true,
           dataSource: 'static'
@@ -540,6 +660,16 @@ const ParkingPage = () => {
       setParkingDataLoading(false);
     }
   };
+
+  // Auto-refresh every 1 minute for live GeoJSON data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing live parking data...');
+      loadRealTimeParkingData();
+    }, 1 * 60 * 1000); // 1 minute for live data
+
+    return () => clearInterval(interval);
+  }, []);
 
   // OSM Daten laden
   const loadOSMData = async () => {
@@ -572,10 +702,15 @@ const ParkingPage = () => {
     // Nutze nur die echten API-Daten von parking-vercel, keine statischen Daten mehr
     const scrapedSpots = convertOfficialDataToParkingSpots(realTimeParkingData);
     
+    if (scrapedSpots.length === 0) {
+      console.warn('Keine API-Daten verfügbar, nutze Street Parking als Fallback');
+      return streetParking;
+    }
+    
     // Sortiere nach Entfernung und nehme nur die besten Spots
     const sortedSpots = scrapedSpots.sort((a, b) => a.distance - b.distance);
     
-    return [...streetParking, ...sortedSpots];
+    return sortedSpots;
   }, [streetParking, userLocation, realTimeParkingData]);
 
   // Gefilterte und sortierte Parkplätze (Navigation-Style)

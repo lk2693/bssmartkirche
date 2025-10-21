@@ -11,6 +11,7 @@ import {
   ChevronRight, Play, Pause, Volume2, CloudSun,
   Thermometer, Wind, Eye, Crown, Home
 } from 'lucide-react';
+import NotificationBanner from './components/NotificationBanner';
 
 // Types
 interface WeatherData {
@@ -528,50 +529,79 @@ const HomePage: React.FC = () => {
   const HeroSlider: React.FC = React.memo(() => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isPlaying, setIsPlaying] = useState(true);
+    const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
     const slideInterval = useRef<NodeJS.Timeout | null>(null);
 
-    const heroSlides: HeroSlide[] = [
-      {
-        id: 'dom',
-        title: 'Dom St. Blasii',
-        subtitle: 'Wahrzeichen der Stadt',
-        description: 'Entdecken Sie das beeindruckende romanische Bauwerk aus dem 12. Jahrhundert',
-        image: '/dom st blasii.jpeg',
-        cta: 'Mehr erfahren',
-        ctaLink: '/stadtfuehrungen',
-        gradient: 'from-amber-500 to-orange-600'
-      },
-      {
-        id: 'rizzi',
-        title: 'Happy Rizzi House',
-        subtitle: 'Bunte Moderne',
-        description: 'Erleben Sie moderne Kunst in der historischen Altstadt von Braunschweig',
-        image: '/rizzi house.jpeg',
-        cta: 'Besuchen',
-        ctaLink: '/events',
-        gradient: 'from-purple-500 to-indigo-600'
-      },
-      {
-        id: 'braunschweig',
-        title: 'Braunschweig Panorama',
-        subtitle: 'Löwenstadt entdecken',
-        description: 'Erleben Sie die wunderschöne Skyline der historischen Löwenstadt',
-        image: '/Braunschweig.png',
-        cta: 'Erkunden',
-        ctaLink: '/navigation',
-        gradient: 'from-blue-500 to-indigo-600'
-      },
-      {
-        id: 'magniviertel',
-        title: 'Magniviertel',
-        subtitle: 'Kultureller Mittelpunkt',
-        description: 'Shoppen, schlemmen und entspannen im historischen Fachwerkviertel',
-        image: '/magniviertel.webp',
-        cta: 'Erkunden',
-        ctaLink: '/shopping',
-        gradient: 'from-green-500 to-emerald-600'
-      }
-    ];
+    // Lade Hero Slides beim Mount
+    useEffect(() => {
+      fetch('/api/content/hero-slides')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data.length > 0) {
+            setHeroSlides(data.data);
+          } else {
+            // Fallback zu Standard-Slides
+            setHeroSlides([
+              {
+                id: 'dom',
+                title: 'Dom St. Blasii',
+                subtitle: 'Wahrzeichen der Stadt',
+                description: 'Entdecken Sie das beeindruckende romanische Bauwerk aus dem 12. Jahrhundert',
+                image: '/dom st blasii.jpeg',
+                cta: 'Mehr erfahren',
+                ctaLink: '/stadtfuehrungen',
+                gradient: 'from-amber-500 to-orange-600'
+              },
+              {
+                id: 'rizzi',
+                title: 'Happy Rizzi House',
+                subtitle: 'Bunte Moderne',
+                description: 'Erleben Sie moderne Kunst in der historischen Altstadt von Braunschweig',
+                image: '/rizzi house.jpeg',
+                cta: 'Besuchen',
+                ctaLink: '/events',
+                gradient: 'from-purple-500 to-indigo-600'
+              },
+              {
+                id: 'braunschweig',
+                title: 'Braunschweig Panorama',
+                subtitle: 'Löwenstadt entdecken',
+                description: 'Erleben Sie die wunderschöne Skyline der historischen Löwenstadt',
+                image: '/Braunschweig.png',
+                cta: 'Erkunden',
+                ctaLink: '/navigation',
+                gradient: 'from-blue-500 to-indigo-600'
+              },
+              {
+                id: 'magniviertel',
+                title: 'Magniviertel',
+                subtitle: 'Kultureller Mittelpunkt',
+                description: 'Shoppen, schlemmen und entspannen im historischen Fachwerkviertel',
+                image: '/magniviertel.webp',
+                cta: 'Erkunden',
+                ctaLink: '/shopping',
+                gradient: 'from-green-500 to-emerald-600'
+              }
+            ]);
+          }
+        })
+        .catch(err => {
+          console.error('Error loading hero slides:', err);
+          // Fallback zu Standard-Slides bei Fehler
+          setHeroSlides([
+            {
+              id: 'dom',
+              title: 'Dom St. Blasii',
+              subtitle: 'Wahrzeichen der Stadt',
+              description: 'Entdecken Sie das beeindruckende romanische Bauwerk aus dem 12. Jahrhundert',
+              image: '/dom st blasii.jpeg',
+              cta: 'Mehr erfahren',
+              ctaLink: '/stadtfuehrungen',
+              gradient: 'from-amber-500 to-orange-600'
+            }
+          ]);
+        });
+    }, []);
 
     const nextSlide = useCallback(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -605,6 +635,22 @@ const HomePage: React.FC = () => {
     };
 
     const currentHeroSlide = heroSlides[currentSlide];
+
+    // Loading state - zeige Platzhalter während Slides geladen werden
+    if (!currentHeroSlide || heroSlides.length === 0) {
+      return (
+        <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl mb-6 bg-gradient-to-r from-blue-500 to-indigo-600">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-pulse text-white">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full mx-auto mb-3"></div>
+                <p className="text-sm">Lädt...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl mb-6">
@@ -1464,6 +1510,9 @@ const HomePage: React.FC = () => {
             {/* Hero Slider */}
             <HeroSlider />
             
+            {/* Notifications */}
+            <NotificationBanner page="home" />
+            
             {/* Weather */}
             <WeatherWidget />
             
@@ -1485,7 +1534,7 @@ const HomePage: React.FC = () => {
                   href="/parking"
                   icon={<Car className="w-6 h-6 text-white" />}
                   title="Parking"
-                  subtitle={`${liveData.parkingSpaces} Plätze frei`}
+                  subtitle="Parkplätze finden"
                   color="bg-gradient-to-br from-green-500 to-green-600"
                 />
                 <QuickActionCard

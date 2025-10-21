@@ -6,6 +6,12 @@
       "use": "@vercel/next@latest"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/update-parking-data",
+      "schedule": "0 */15 * * * *"
+    }
+  ],
   "functions": {
     "pages/api/parking-data.js": {
       "maxDuration": 30
