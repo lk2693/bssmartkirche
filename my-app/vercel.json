@@ -13,9 +13,6 @@
       "maxDuration": 10
     }
   },
-  "env": {
-    "NEXT_PUBLIC_WEATHER_API_KEY": "@weather-api-key"
-  },
   "regions": ["fra1"],
   "rewrites": [
     {
